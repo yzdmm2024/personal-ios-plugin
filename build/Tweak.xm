@@ -2424,12 +2424,12 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         menuX = btnFrame.origin.x - menuW - 4;
     }
     // 检查下边界
-    if (menuY + 154 > g_panel.frame.size.height) {
-        menuY = g_panel.frame.size.height - 159;
+    if (menuY + 130 > g_panel.frame.size.height) {
+        menuY = g_panel.frame.size.height - 135;
     }
     
-    // 菜单容器
-    UIView *menu = [[UIView alloc] initWithFrame:CGRectMake(menuX, menuY, menuW, 150)];
+    // 菜单容器（4个选项各30px = 120px，加底部6px留白）
+    UIView *menu = [[UIView alloc] initWithFrame:CGRectMake(menuX, menuY, menuW, 126)];
     menu.backgroundColor = [UIColor colorWithWhite:0.2 alpha:0.98];
     menu.layer.cornerRadius = 10;
     menu.layer.shadowColor = UIColor.blackColor.CGColor;
