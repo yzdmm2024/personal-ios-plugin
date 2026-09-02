@@ -3084,7 +3084,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
             // 调整大小模式：记录起始选框和触摸点
             objc_setAssociatedObject(bg, "startRect", [NSValue valueWithCGRect:curRect], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         } else if (hasBox) {
-            // 移动模式：记录触摸偏移
+            // 移动模式：记录触摸偏移(触摸点→框左上角)
             objc_setAssociatedObject(bg, "moveOffset", [NSValue valueWithCGPoint:CGPointMake(pt.x-curRect.origin.x, pt.y-curRect.origin.y)], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         } else {
             // 新选框：记录起点
@@ -3099,36 +3099,19 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         CGRect newRect = CGRectZero;
 
         if (startRectVal && isResize.boolValue) {
-            // 调整大小模式：起点在框内，根据触摸方向调整右下角
+            // 调整大小模式：框内拖动，调整右下角
             CGRect startRect = [startRectVal CGRectValue];
-            // 计算触摸偏移量来决定调整哪个边
-            CGPoint startPt = [objc_getAssociatedObject(bg, "startPoint") CGPointValue];
-            if (!startPt.x) startPt = pt;
-            CGPoint offset = CGPointMake(pt.x - startPt.x, pt.y - startPt.y);
-            // 如果移动量小，则使用固定比例
-            if (fabs(offset.x) < 5 && fabs(offset.y) < 5) {
-                newRect = startRect;
-            } else {
-                // 根据触摸位置决定调整哪个边/角
-                CGFloat w = startRect.size.width + offset.x;
-                CGFloat h = startRect.size.height + offset.y;
-                if (w < 30) w = 30;
-                if (h < 30) h = 30;
-                newRect = CGRectMake(startRect.origin.x, startRect.origin.y, w, h);
-            }
+            CGFloat w = MAX(30, startRect.size.width + (pt.x - startRect.origin.x - startRect.size.width));
+            CGFloat h = MAX(30, startRect.size.height + (pt.y - startRect.origin.y - startRect.size.height));
+            newRect = CGRectMake(startRect.origin.x, startRect.origin.y, w, h);
         } else if (moveOffsetVal) {
-            // 移动模式：起点在框外，整体移动选框
-            CGPoint offset = CGPointMake(pt.x - [moveOffsetVal CGPointValue].x, pt.y - [moveOffsetVal CGPointValue].y);
-            CGPoint origin = objc_getAssociatedObject(bg, "moveStart") ? [objc_getAssociatedObject(bg, "moveStart") CGPointValue] : CGPointZero;
-            if (origin.x == 0 && origin.y == 0) {
-                origin = box.frame.origin;
-                objc_setAssociatedObject(bg, "moveStart", [NSValue valueWithCGPoint:origin], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            }
-            CGFloat w = box.frame.size.width;
-            CGFloat h = box.frame.size.height;
-            newRect = CGRectMake(origin.x + offset.x, origin.y + offset.y, w, h);
+            // 移动模式：框外拖动，整体移动选框
+            CGPoint off = [moveOffsetVal CGPointValue];
+            CGFloat newX = pt.x - off.x;
+            CGFloat newY = pt.y - off.y;
+            newRect = CGRectMake(newX, newY, box.frame.size.width, box.frame.size.height);
         } else if (startPointVal) {
-            // 新选框：从起点到当前点
+            // 新选框：从起点到当前点自由拖动
             CGPoint start = [startPointVal CGPointValue];
             CGFloat minX = MIN(start.x, pt.x);
             CGFloat maxX = MAX(start.x, pt.x);
@@ -3152,8 +3135,6 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
             objc_setAssociatedObject(bg, "selectedRegion", [NSValue valueWithCGRect:newRect], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         }
     } else if (g.state == UIGestureRecognizerStateEnded) {
-        // 清除移动起点
-        objc_setAssociatedObject(bg, "moveStart", nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         // 更新起始点记录
         NSValue *region = objc_getAssociatedObject(bg, "selectedRegion");
         if (region) {
@@ -3999,6 +3980,26 @@ static NSString *profilesArchivePath(void) {
         NSString *fpath = [paths.firstObject stringByAppendingPathComponent:fname];
         [data writeToFile:fpath atomically:YES];
         [self addLog:[NSString stringWithFormat:@"已导出: %@ (%lu bytes)", fname, (unsigned long)data.length]];
+        // 在设置面板上显示导出成功提示
+        UIView *mask = [g_panel.superview viewWithTag:998];
+        if (mask) {
+            CGFloat cw = 260, ch = 60;
+            UIView *toast = [[UIView alloc] initWithFrame:CGRectMake((mask.frame.size.width-cw)/2, mask.frame.size.height-120, cw, ch)];
+            toast.backgroundColor = [UIColor colorWithRed:0.2 green:0.6 blue:0.2 alpha:0.95];
+            toast.layer.cornerRadius = 12;
+            toast.tag = 9991;
+            UILabel *lb = [[UILabel alloc] initWithFrame:toast.bounds];
+            lb.text = [NSString stringWithFormat:@"✅ 导出成功: %@", fname];
+            lb.textColor = UIColor.whiteColor;
+            lb.textAlignment = NSTextAlignmentCenter;
+            lb.font = [UIFont systemFontOfSize:13];
+            lb.numberOfLines = 2;
+            [toast addSubview:lb];
+            [mask addSubview:toast];
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [toast removeFromSuperview];
+            });
+        }
     });
 }
 - (void)onImportTasks {
@@ -4331,22 +4332,19 @@ static NSString *profilesArchivePath(void) {
     NSInteger idx = sender.tag;
     if (idx < g_timerTimes.count) {
         [g_timerTimes removeObjectAtIndex:idx];
-        // 刷新设置面板
-        [self dismissSettings];
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self onSettingsTap];
-        });
+        // 先移除旧面板，再立即创建新面板（无延迟）
+        [[g_panel.superview viewWithTag:998] removeFromSuperview];
+        [self onSettingsTap];
     }
 }
 - (void)onTimerSwitch:(UISwitch *)s {
     g_timerEnabled = s.on;
-    [self dismissSettings];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        [self onSettingsTap];
-        if (g_timerEnabled && g_timerTimes.count > 0) {
-            [self startTimerCheck];
-        }
-    });
+    // 先移除旧面板，再立即创建新面板（无延迟）
+    [[g_panel.superview viewWithTag:998] removeFromSuperview];
+    [self onSettingsTap];
+    if (g_timerEnabled && g_timerTimes.count > 0) {
+        [self startTimerCheck];
+    }
 }
 - (void)onTimerPick {
     CGRect sb = UIScreen.mainScreen.bounds;
@@ -4369,20 +4367,23 @@ static NSString *profilesArchivePath(void) {
     title.font = [UIFont boldSystemFontOfSize:16];
     [card addSubview:title];
     
-    // 滚轮时间选择器 (类似苹果闹钟) - 居中放置
-    UIDatePicker *picker = [[UIDatePicker alloc] initWithFrame:CGRectMake(20, 55, pw-40, 150)];
+    // 滚轮时间选择器 (类似苹果闹钟) - 向上调整位置，避免太靠下
+    UIDatePicker *picker = [[UIDatePicker alloc] initWithFrame:CGRectMake(20, 50, pw-40, 140)];
     picker.datePickerMode = UIDatePickerModeTime;
     picker.locale = [NSLocale localeWithLocaleIdentifier:@"zh_CN"];
     picker.minuteInterval = 1;
     if (@available(iOS 13.4, *)) {
         picker.preferredDatePickerStyle = UIDatePickerStyleWheels;
     }
+    // 强制文本颜色为白色（深色背景）
+    [picker setValue:UIColor.whiteColor forKey:@"textColor"];
+    picker.tintColor = UIColor.whiteColor;
     picker.tag = 888;
     [card addSubview:picker];
     
     // 确定按钮
     UIButton *confirmBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    confirmBtn.frame = CGRectMake(pw/2-90, ph-60, 80, 36);
+    confirmBtn.frame = CGRectMake(pw/2-90, ph-56, 80, 36);
     confirmBtn.backgroundColor = [UIColor colorWithRed:0.2 green:0.5 blue:0.8 alpha:1];
     confirmBtn.layer.cornerRadius = 18;
     [confirmBtn setTitle:@"确定" forState:UIControlStateNormal];
@@ -4392,7 +4393,7 @@ static NSString *profilesArchivePath(void) {
     [card addSubview:confirmBtn];
     
     UIButton *cancelBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    cancelBtn.frame = CGRectMake(pw/2+10, ph-60, 80, 36);
+    cancelBtn.frame = CGRectMake(pw/2+10, ph-56, 80, 36);
     cancelBtn.backgroundColor = [UIColor colorWithRed:0.7 green:0.15 blue:0.15 alpha:1];
     cancelBtn.layer.cornerRadius = 18;
     [cancelBtn setTitle:@"取消" forState:UIControlStateNormal];
@@ -4944,8 +4945,10 @@ static NSString *profilesArchivePath(void) {
 }
 
 - (void)showColorMatchPicker:(ACTask *)task {
-    [self dismissPanelFast];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    // 立即移除面板，无延迟
+    g_panelVisible = NO;
+    [g_panel removeFromSuperview]; g_panel = nil;
+    dispatch_async(dispatch_get_main_queue(), ^{
         CGRect sb = UIScreen.mainScreen.bounds;
         g_configWin = [[ACPassThroughWindow alloc] initWithFrame:sb];
         g_configWin.windowLevel = UIWindowLevelAlert - 1;
