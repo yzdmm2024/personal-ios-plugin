@@ -1523,20 +1523,28 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         [bg addSubview:dot];
         
         // A/B标记文字
-        UILabel *aLabel = [[UILabel alloc] initWithFrame:CGRectMake(sb.size.width/2-8, sb.size.height/2-8, 16, 16)];
+        UIView *aDot = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 24, 24)];
+        aDot.backgroundColor = [UIColor blueColor]; aDot.layer.cornerRadius = 12;
+        aDot.layer.borderColor = UIColor.whiteColor.CGColor; aDot.layer.borderWidth = 2;
+        aDot.tag = 907;
+        [bg addSubview:aDot];
+        UILabel *aLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 16, 16)];
         aLabel.text = @"A"; aLabel.textColor = UIColor.whiteColor; aLabel.font = [UIFont boldSystemFontOfSize:14];
         aLabel.textAlignment = NSTextAlignmentCenter; aLabel.tag = 906;
-        [bg addSubview:aLabel];
+        [aDot addSubview:aLabel];
+        aDot.center = CGPointMake(sb.size.width/2, sb.size.height/2);
+        aLabel.center = CGPointMake(12, 12);
         
         UIImageView *bDot = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 24, 24)];
-        bDot.hidden = YES; bDot.tag = 907;
-        bDot.backgroundColor = [UIColor blueColor]; bDot.layer.cornerRadius = 12;
+        bDot.hidden = YES; bDot.tag = 909;
+        bDot.backgroundColor = [UIColor greenColor]; bDot.layer.cornerRadius = 12;
         bDot.layer.borderColor = UIColor.whiteColor.CGColor; bDot.layer.borderWidth = 2;
         [bg addSubview:bDot];
         UILabel *bLabel = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, 16, 16)];
         bLabel.text = @"B"; bLabel.textColor = UIColor.whiteColor; bLabel.font = [UIFont boldSystemFontOfSize:14];
         bLabel.textAlignment = NSTextAlignmentCenter; bLabel.tag = 908;
-        [bg addSubview:bLabel];
+        [bDot addSubview:bLabel];
+        bLabel.center = CGPointMake(12, 12);
         
         UILabel *hint = [[UILabel alloc] initWithFrame:CGRectMake(20, 60, sb.size.width-40, 36)];
         hint.text = @"点击选择 🅰 起点"; hint.textColor = UIColor.whiteColor;
@@ -1573,10 +1581,10 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     UILabel *hint = [bg viewWithTag:904];
     if (g_pickerPhase == 0) {
         hint.text = [NSString stringWithFormat:@"🅰 选择起点: (%.0f, %.0f)", pt.x, pt.y];
-        [bg viewWithTag:906].center = pt;
+        [bg viewWithTag:907].center = pt;
     } else {
         hint.text = [NSString stringWithFormat:@"🅱 选择终点: (%.0f, %.0f)", pt.x, pt.y];
-        [bg viewWithTag:908].center = pt;
+        [bg viewWithTag:909].center = pt;
     }
     // 移除自动确认 - 仅移动预览，点击确认
 }
@@ -1592,28 +1600,39 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         task.x = pt.x; task.y = pt.y;
         g_pickerPhase = 1;
         // 固定A点，显示B点标记
-        UIView *bDot = [bg viewWithTag:907];
+        UIView *bDot = [bg viewWithTag:909];
         bDot.hidden = NO;
         UIView *bLabel = [bg viewWithTag:908];
         bLabel.hidden = NO;
-        // 更新A点颜色
-        UIView *dot = [bg viewWithTag:903];
-        dot.backgroundColor = [UIColor greenColor];
+        // 更新A点颜色（已选蓝色）
         // 启用B点标记
         bDot.center = pt;
         bLabel.center = pt;
         UILabel *hint = [bg viewWithTag:904];
-        hint.text = @"点击选择 🅱 终点";
+        // 添加方向提示 A → B
+        if (task.x < pt.x) {
+            hint.text = @"🅰 → 🅱 从左向右滑动，点击选择 🅱 终点";
+        } else if (task.x > pt.x) {
+            hint.text = @"🅰 → 🅱 从右向左滑动，点击选择 🅱 终点";
+        } else if (task.y < pt.y) {
+            hint.text = @"🅰 → 🅱 从上向下滑动，点击选择 🅱 终点";
+        } else {
+            hint.text = @"🅰 → 🅱 从下向上滑动，点击选择 🅱 终点";
+        }
         // 移动十字线到B点
         [bg viewWithTag:901].frame = CGRectMake(pt.x-40, pt.y-0.5, 80, 1);
         [bg viewWithTag:902].frame = CGRectMake(pt.x-0.5, pt.y-40, 1, 80);
+        [bg viewWithTag:903].center = pt;
         return;
     }
     task.x2 = pt.x; task.y2 = pt.y;
     g_pickerPhase = 99;
     [g_pickerWin setHidden:YES]; g_pickerWin = nil;
-    // 更新编辑面板中的坐标
-    [self showSwipeEditPanel:task];
+    // 更新编辑面板中的坐标并重新打开编辑面板
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self showPanel];
+        [self showSwipeEditPanel:task];
+    });
 }
 
 // 等待编辑面板
@@ -1681,6 +1700,17 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     CGFloat cw = card.frame.size.width;
     CGFloat y = 158;
     
+    // 右上角红色关闭按钮
+    UIButton *closeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+    closeBtn.frame = CGRectMake(cw-36, 4, 32, 32);
+    closeBtn.backgroundColor = [UIColor colorWithRed:0.8 green:0.15 blue:0.15 alpha:1];
+    closeBtn.layer.cornerRadius = 16;
+    [closeBtn setTitle:@"✕" forState:UIControlStateNormal];
+    [closeBtn setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+    closeBtn.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+    [closeBtn addTarget:self action:@selector(onEditPanelCancel) forControlEvents:UIControlEventTouchUpInside];
+    [card addSubview:closeBtn];
+    
     // 相似度阈值
     UILabel *threshLb = [[UILabel alloc] initWithFrame:CGRectMake(20, y, 80, 28)];
     threshLb.text = @"相似度";
@@ -1712,7 +1742,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     actionLb.font = [UIFont systemFontOfSize:13];
     [card addSubview:actionLb];
     
-    UISegmentedControl *actionSeg = [[UISegmentedControl alloc] initWithItems:@[@"不执行", @"点击匹配", @"点击中心"]];
+    UISegmentedControl *actionSeg = [[UISegmentedControl alloc] initWithItems:@[@"不执行", @"点击匹配", @"点击"]];
     actionSeg.frame = CGRectMake(20, y+68, cw-40, 32);
     actionSeg.selectedSegmentIndex = task.actionAfterFound;
     actionSeg.tintColor = [UIColor systemBlueColor];
@@ -1844,7 +1874,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     actionLb.font = [UIFont systemFontOfSize:13];
     [card addSubview:actionLb];
     
-    UISegmentedControl *actionSeg = [[UISegmentedControl alloc] initWithItems:@[@"不执行", @"点击匹配", @"点击中心"]];
+    UISegmentedControl *actionSeg = [[UISegmentedControl alloc] initWithItems:@[@"不执行", @"点击匹配", @"点击"]];
     actionSeg.frame = CGRectMake(20, y+142, cw-40, 32);
     actionSeg.selectedSegmentIndex = task.actionAfterFound;
     actionSeg.tintColor = [UIColor systemBlueColor];
@@ -2143,19 +2173,26 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     NSInteger xTag = [objc_getAssociatedObject(bg, "xTag") integerValue];
     NSInteger yTag = [objc_getAssociatedObject(bg, "yTag") integerValue];
     
+    // 先更新任务坐标
+    if (xTag == 10010 && yTag == 10011) {
+        task.x = pt.x;
+        task.y = pt.y;
+    } else if (xTag == 10030 && yTag == 10031) {
+        task.x = pt.x;
+        task.y = pt.y;
+    } else if (xTag == 10040 && yTag == 10041) {
+        task.x = pt.x;
+        task.y = pt.y;
+    }
+    
     g_pickerPhase = 99;
     [g_pickerWin setHidden:YES]; g_pickerWin = nil;
     
     dispatch_async(dispatch_get_main_queue(), ^{
         g_pickerPhase = 0;
         [self showPanel];
-        // 更新编辑面板中的字段
+        // 重新打开编辑面板（此时会读取已经更新过的 task.x/task.y）
         [self showEditPanel:task];
-        UIView *card = [g_panel viewWithTag:702];
-        UITextField *xTf = [card viewWithTag:xTag];
-        UITextField *yTf = [card viewWithTag:yTag];
-        xTf.text = [NSString stringWithFormat:@"%.0f", pt.x];
-        yTf.text = [NSString stringWithFormat:@"%.0f", pt.y];
     });
 }
 
@@ -2585,6 +2622,12 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     [UIView animateWithDuration:0.2 animations:^{ g_panel.alpha = 0; } completion:^(BOOL f) {
         [g_panel removeFromSuperview]; g_panel = nil;
     }];
+}
+
+// 快速关闭面板（用于立即显示下一个界面，减少延迟）
+- (void)dismissPanelFast {
+    g_panelVisible = NO;
+    [g_panel removeFromSuperview]; g_panel = nil;
 }
 
 // ==================== 动作菜单 ====================
@@ -3023,7 +3066,6 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
 - (void)regionPan:(UIPanGestureRecognizer *)g {
     CGPoint pt = [g locationInView:g.view];
     UIView *bg = g.view;
-    CGRect sb = UIScreen.mainScreen.bounds;
 
     UIView *hLine = [bg viewWithTag:5004];
     UIView *vLine = [bg viewWithTag:5005];
@@ -3032,46 +3074,92 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     UIButton *confirmBtn = objc_getAssociatedObject(bg, "confirmBtn");
 
     if (g.state == UIGestureRecognizerStateBegan) {
-        // 开始选择 - 记录起点
-        objc_setAssociatedObject(bg, "startPoint", [NSValue valueWithCGPoint:pt], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-        hLine.hidden = NO;
-        vLine.hidden = NO;
-        box.hidden = NO;
-        sizeLb.hidden = NO;
-    } else if (g.state == UIGestureRecognizerStateChanged) {
-        // 更新选择区域
-        NSValue *startVal = objc_getAssociatedObject(bg, "startPoint");
-        if (!startVal || [startVal isKindOfClass:[NSNull class]]) return;
-
-        CGPoint start = [startVal CGPointValue];
-        CGFloat minX = MIN(start.x, pt.x);
-        CGFloat maxX = MAX(start.x, pt.x);
-        CGFloat minY = MIN(start.y, pt.y);
-        CGFloat maxY = MAX(start.y, pt.y);
-        CGFloat width = maxX - minX;
-        CGFloat height = maxY - minY;
-
-        // 更新十字线显示起点
-        hLine.frame = CGRectMake(minX, start.y - 0.5, width, 1);
-        vLine.frame = CGRectMake(start.x - 0.5, minY, 1, height);
-        box.frame = CGRectMake(minX, minY, width, height);
-
-        // 更新尺寸标签（放在框底部）
-        sizeLb.frame = CGRectMake(minX + (width-120)/2, maxY + 2, 120, 18);
-        sizeLb.text = [NSString stringWithFormat:@"%.0fx%.0f", width, height];
-        sizeLb.hidden = NO;
-
-        // 启用确认按钮（最小尺寸30x30）
-        if (width >= 30 && height >= 30) {
-            confirmBtn.enabled = YES;
-            confirmBtn.alpha = 1.0;
+        // 判断是否已有选框
+        CGRect curRect = box.frame;
+        BOOL hasBox = !box.hidden && curRect.size.width > 0 && curRect.size.height > 0;
+        // 起点在框内 => 调整大小；起点在框外 => 移动选框
+        BOOL insideBox = hasBox && CGRectContainsPoint(CGRectInset(curRect, -10, -10), pt);
+        objc_setAssociatedObject(bg, "isResize", @(insideBox), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (hasBox && insideBox) {
+            // 调整大小模式：记录起始选框和触摸点
+            objc_setAssociatedObject(bg, "startRect", [NSValue valueWithCGRect:curRect], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        } else if (hasBox) {
+            // 移动模式：记录触摸偏移
+            objc_setAssociatedObject(bg, "moveOffset", [NSValue valueWithCGPoint:CGPointMake(pt.x-curRect.origin.x, pt.y-curRect.origin.y)], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         } else {
-            confirmBtn.enabled = NO;
-            confirmBtn.alpha = 0.5;
+            // 新选框：记录起点
+            objc_setAssociatedObject(bg, "startPoint", [NSValue valueWithCGPoint:pt], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         }
+        hLine.hidden = NO; vLine.hidden = NO; box.hidden = NO; sizeLb.hidden = NO;
+    } else if (g.state == UIGestureRecognizerStateChanged) {
+        NSNumber *isResize = objc_getAssociatedObject(bg, "isResize");
+        NSValue *startRectVal = objc_getAssociatedObject(bg, "startRect");
+        NSValue *moveOffsetVal = objc_getAssociatedObject(bg, "moveOffset");
+        NSValue *startPointVal = objc_getAssociatedObject(bg, "startPoint");
+        CGRect newRect = CGRectZero;
 
-        // 更新当前选中区域
-        objc_setAssociatedObject(bg, "selectedRegion", [NSValue valueWithCGRect:box.frame], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        if (startRectVal && isResize.boolValue) {
+            // 调整大小模式：起点在框内，根据触摸方向调整右下角
+            CGRect startRect = [startRectVal CGRectValue];
+            // 计算触摸偏移量来决定调整哪个边
+            CGPoint startPt = [objc_getAssociatedObject(bg, "startPoint") CGPointValue];
+            if (!startPt.x) startPt = pt;
+            CGPoint offset = CGPointMake(pt.x - startPt.x, pt.y - startPt.y);
+            // 如果移动量小，则使用固定比例
+            if (fabs(offset.x) < 5 && fabs(offset.y) < 5) {
+                newRect = startRect;
+            } else {
+                // 根据触摸位置决定调整哪个边/角
+                CGFloat w = startRect.size.width + offset.x;
+                CGFloat h = startRect.size.height + offset.y;
+                if (w < 30) w = 30;
+                if (h < 30) h = 30;
+                newRect = CGRectMake(startRect.origin.x, startRect.origin.y, w, h);
+            }
+        } else if (moveOffsetVal) {
+            // 移动模式：起点在框外，整体移动选框
+            CGPoint offset = CGPointMake(pt.x - [moveOffsetVal CGPointValue].x, pt.y - [moveOffsetVal CGPointValue].y);
+            CGPoint origin = objc_getAssociatedObject(bg, "moveStart") ? [objc_getAssociatedObject(bg, "moveStart") CGPointValue] : CGPointZero;
+            if (origin.x == 0 && origin.y == 0) {
+                origin = box.frame.origin;
+                objc_setAssociatedObject(bg, "moveStart", [NSValue valueWithCGPoint:origin], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            }
+            CGFloat w = box.frame.size.width;
+            CGFloat h = box.frame.size.height;
+            newRect = CGRectMake(origin.x + offset.x, origin.y + offset.y, w, h);
+        } else if (startPointVal) {
+            // 新选框：从起点到当前点
+            CGPoint start = [startPointVal CGPointValue];
+            CGFloat minX = MIN(start.x, pt.x);
+            CGFloat maxX = MAX(start.x, pt.x);
+            CGFloat minY = MIN(start.y, pt.y);
+            CGFloat maxY = MAX(start.y, pt.y);
+            newRect = CGRectMake(minX, minY, maxX-minX, maxY-minY);
+        }
+        if (newRect.size.width > 0) {
+            box.frame = newRect;
+            // 十字线
+            hLine.frame = CGRectMake(newRect.origin.x, newRect.origin.y, newRect.size.width, 1);
+            vLine.frame = CGRectMake(newRect.origin.x, newRect.origin.y, 1, newRect.size.height);
+            // 尺寸标签
+            sizeLb.frame = CGRectMake(newRect.origin.x + (newRect.size.width-120)/2, CGRectGetMaxY(newRect)+2, 120, 18);
+            sizeLb.text = [NSString stringWithFormat:@"%.0fx%.0f", newRect.size.width, newRect.size.height];
+            if (newRect.size.width >= 30 && newRect.size.height >= 30) {
+                confirmBtn.enabled = YES; confirmBtn.alpha = 1.0;
+            } else {
+                confirmBtn.enabled = NO; confirmBtn.alpha = 0.5;
+            }
+            objc_setAssociatedObject(bg, "selectedRegion", [NSValue valueWithCGRect:newRect], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
+    } else if (g.state == UIGestureRecognizerStateEnded) {
+        // 清除移动起点
+        objc_setAssociatedObject(bg, "moveStart", nil, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        // 更新起始点记录
+        NSValue *region = objc_getAssociatedObject(bg, "selectedRegion");
+        if (region) {
+            objc_setAssociatedObject(bg, "startPoint", [NSValue valueWithCGPoint:box.frame.origin], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+            objc_setAssociatedObject(bg, "startRect", [NSValue valueWithCGRect:box.frame], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        }
     }
 }
 
@@ -4832,7 +4920,7 @@ static NSString *profilesArchivePath(void) {
         [saveBtn addTarget:self action:@selector(onColorMatchEditSave:) forControlEvents:UIControlEventTouchUpInside];
         [card addSubview:saveBtn];
         
-        ((UIScrollView *)card).contentSize = CGSizeMake(cw, y+220);
+        ((UIScrollView *)card).contentSize = CGSizeMake(cw, y+225);
     } else {
         // 新任务，走颜色拾取流程
         [self showColorMatchPicker:task];
@@ -4859,14 +4947,14 @@ static NSString *profilesArchivePath(void) {
 - (void)onColorMatchRePick:(UIButton *)sender {
     ACTask *task = objc_getAssociatedObject(sender, "task");
     [self dismissEditPanel];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         [self showColorMatchPicker:task];
     });
 }
 
 - (void)showColorMatchPicker:(ACTask *)task {
-    [self dismissPanel];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    [self dismissPanelFast];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.1*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         CGRect sb = UIScreen.mainScreen.bounds;
         g_configWin = [[ACPassThroughWindow alloc] initWithFrame:sb];
         g_configWin.windowLevel = UIWindowLevelAlert - 1;
