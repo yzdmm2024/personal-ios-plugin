@@ -3766,10 +3766,8 @@ static NSString *profilesArchivePath(void) {
 
 // ==================== 脚本管理面板 ====================
 - (void)onScriptManage {
-    [self dismissSettings];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        CGRect sb = UIScreen.mainScreen.bounds;
-        CGFloat pw = 280, ph = 400;
+    CGRect sb = UIScreen.mainScreen.bounds;
+    CGFloat pw = 280, ph = 400;
         UIView *mask = [[UIView alloc] initWithFrame:sb];
         mask.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];
         mask.tag = 997;
@@ -3849,8 +3847,7 @@ static NSString *profilesArchivePath(void) {
         UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissScriptMgr)];
         tap.cancelsTouchesInView = NO;
         [mask addGestureRecognizer:tap];
-    });
-}
+    }
 - (UIView *)createScriptRow:(UIScrollView *)scroll y:(CGFloat)y w:(CGFloat)w h:(CGFloat)h name:(NSString *)name idx:(NSInteger)idx {
     UIView *row = [[UIView alloc] initWithFrame:CGRectMake(16, y, w, h)];
     row.backgroundColor = [UIColor colorWithWhite:0.18 alpha:1];
@@ -3963,9 +3960,8 @@ static NSString *profilesArchivePath(void) {
 
 // ==================== 导出/导入 ====================
 - (void)onExportTasks {
-    // 先关闭设置面板，再导出
-    [self dismissSettings];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    // 直接在面板上层叠加，不关闭设置
+    dispatch_async(dispatch_get_main_queue(), ^{
         // 导出当前任务为JSON文件到Documents
         NSMutableArray *jsonArr = [NSMutableArray array];
         for (ACTask *t in g_taskList) {
@@ -4006,9 +4002,8 @@ static NSString *profilesArchivePath(void) {
     });
 }
 - (void)onImportTasks {
-    // 从文件导入 - 先关闭设置面板，再显示导入列表
-    [self dismissSettings];
-    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+    // 直接在设置面板上层叠加，不关闭
+    dispatch_async(dispatch_get_main_queue(), ^{
         NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
         NSString *docDir = paths.firstObject;
         NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:docDir error:nil];
@@ -4328,10 +4323,6 @@ static NSString *profilesArchivePath(void) {
     closeBtn.titleLabel.font = [UIFont boldSystemFontOfSize:15];
     [closeBtn addTarget:self action:@selector(dismissSettings) forControlEvents:UIControlEventTouchUpInside];
     [card addSubview:closeBtn];
-    
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissSettings)];
-    tap.cancelsTouchesInView = NO;
-    [mask addGestureRecognizer:tap];
 }
 - (void)dismissSettings {
     [[g_panel.superview viewWithTag:998] removeFromSuperview];
