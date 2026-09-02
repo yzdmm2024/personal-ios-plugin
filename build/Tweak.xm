@@ -605,16 +605,17 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     UIView *head = [[UIView alloc] initWithFrame:CGRectMake(0, 0, pw, 44)];
     head.backgroundColor = [UIColor colorWithWhite:0.12 alpha:1];
     head.tag = 1000;
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(8, 0, 140, 44)];
+    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(8, 0, 136, 44)];
     title.text = @"胖虎连点器"; title.textColor = UIColor.whiteColor;
     title.font = [UIFont boldSystemFontOfSize:15];
+    title.textAlignment = NSTextAlignmentLeft;
     title.adjustsFontSizeToFitWidth = YES;
     title.minimumScaleFactor = 0.8;
     [head addSubview:title];
     
     // 设置按钮
     UIButton *settingsBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    settingsBtn.frame = CGRectMake(152, 6, 36, 32);
+    settingsBtn.frame = CGRectMake(148, 6, 36, 32);
     settingsBtn.backgroundColor = [UIColor colorWithWhite:0.2 alpha:1];
     settingsBtn.layer.cornerRadius = 6;
     [settingsBtn setTitle:@"⚙" forState:UIControlStateNormal];
@@ -626,7 +627,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     
     // 录制按钮（录像）- 靠左靠近设置
     UIButton *recBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    recBtn.frame = CGRectMake(192, 6, 36, 32);
+    recBtn.frame = CGRectMake(188, 6, 36, 32);
     recBtn.backgroundColor = [UIColor colorWithWhite:0.2 alpha:1];
     recBtn.layer.cornerRadius = 6;
     [recBtn setTitle:@"⏺" forState:UIControlStateNormal];
@@ -1577,9 +1578,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         hint.text = [NSString stringWithFormat:@"🅱 选择终点: (%.0f, %.0f)", pt.x, pt.y];
         [bg viewWithTag:908].center = pt;
     }
-    if (g.state == UIGestureRecognizerStateEnded) {
-        [self abPickerConfirm:pt];
-    }
+    // 移除自动确认 - 仅移动预览，点击确认
 }
 - (void)abPickerTap:(UITapGestureRecognizer *)g {
     [self abPickerConfirm:[g locationInView:g.view]];
@@ -1727,7 +1726,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     previewLb.font = [UIFont systemFontOfSize:13];
     [card addSubview:previewLb];
     
-    UIImageView *previewIv = [[UIImageView alloc] initWithFrame:CGRectMake(cw-80, y+108, 56, 56)];
+    UIImageView *previewIv = [[UIImageView alloc] initWithFrame:CGRectMake(120, y+110, 56, 28)];
     previewIv.backgroundColor = [UIColor colorWithWhite:0.2 alpha:1];
     previewIv.contentMode = UIViewContentModeScaleAspectFit;
     previewIv.layer.cornerRadius = 6;
@@ -1742,7 +1741,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     
     // 模板图片选择按钮（局部截图 + 相册选择）
     UIButton *screenshotBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    screenshotBtn.frame = CGRectMake(20, y+146, (cw-50)/2, 32);
+    screenshotBtn.frame = CGRectMake(20, y+150, (cw-50)/2, 32);
     screenshotBtn.backgroundColor = [UIColor colorWithRed:0.2 green:0.5 blue:0.8 alpha:1];
     screenshotBtn.layer.cornerRadius = 16;
     [screenshotBtn setTitle:@"局部截图" forState:UIControlStateNormal];
@@ -1753,7 +1752,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     [card addSubview:screenshotBtn];
     
     UIButton *albumBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    albumBtn.frame = CGRectMake(cw/2+10, y+146, (cw-50)/2, 32);
+    albumBtn.frame = CGRectMake(cw/2+10, y+150, (cw-50)/2, 32);
     albumBtn.backgroundColor = [UIColor colorWithRed:0.6 green:0.4 blue:0.2 alpha:1];
     albumBtn.layer.cornerRadius = 16;
     [albumBtn setTitle:@"相册选择" forState:UIControlStateNormal];
@@ -1765,7 +1764,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     
     // 取消/确定
     UIButton *cancelBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    cancelBtn.frame = CGRectMake(cw/2-100, y+192, 90, 34);
+    cancelBtn.frame = CGRectMake(cw/2-100, y+200, 90, 34);
     cancelBtn.backgroundColor = [UIColor colorWithRed:0.75 green:0.15 blue:0.15 alpha:1];
     cancelBtn.layer.cornerRadius = 17;
     [cancelBtn setTitle:@"取消" forState:UIControlStateNormal];
@@ -1775,7 +1774,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     [card addSubview:cancelBtn];
     
     UIButton *saveBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    saveBtn.frame = CGRectMake(cw/2+10, y+192, 90, 34);
+    saveBtn.frame = CGRectMake(cw/2+10, y+200, 90, 34);
     saveBtn.backgroundColor = [UIColor colorWithRed:0.2 green:0.6 blue:0.2 alpha:1];
     saveBtn.layer.cornerRadius = 17;
     [saveBtn setTitle:@"确定" forState:UIControlStateNormal];
@@ -1787,7 +1786,7 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     [saveBtn addTarget:self action:@selector(onFindImageEditSave:) forControlEvents:UIControlEventTouchUpInside];
     [card addSubview:saveBtn];
     
-    ((UIScrollView *)card).contentSize = CGSizeMake(cw, y+240);
+    ((UIScrollView *)card).contentSize = CGSizeMake(cw, y+250);
 }
 
 // 识字编辑面板
@@ -2070,14 +2069,25 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         [overlay addSubview:dot];
         
         UILabel *hint = [[UILabel alloc] initWithFrame:CGRectMake(20, 60, sb.size.width-40, 36)];
-        hint.text = @"点击选择位置";
+        hint.text = @"点击/拖动选择位置，点「保存坐标」确认";
         hint.textColor = UIColor.whiteColor; hint.textAlignment = NSTextAlignmentCenter;
         hint.font = [UIFont boldSystemFontOfSize:16]; hint.backgroundColor = [UIColor colorWithWhite:0 alpha:0.6];
         hint.layer.cornerRadius = 10; hint.clipsToBounds = YES; hint.tag = 904;
         [overlay addSubview:hint];
         
+        // 保存坐标按钮
+        UIButton *saveBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        saveBtn.frame = CGRectMake(sb.size.width/2-110, sb.size.height-100, 100, 36);
+        saveBtn.backgroundColor = [UIColor colorWithRed:0.2 green:0.6 blue:0.2 alpha:1];
+        saveBtn.layer.cornerRadius = 18;
+        [saveBtn setTitle:@"保存坐标" forState:UIControlStateNormal];
+        [saveBtn setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+        saveBtn.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+        [saveBtn addTarget:self action:@selector(onPickerForEditSave) forControlEvents:UIControlEventTouchUpInside];
+        [overlay addSubview:saveBtn];
+        
         UIButton *cancel = [UIButton buttonWithType:UIButtonTypeCustom];
-        cancel.frame = CGRectMake(sb.size.width/2-50, sb.size.height-100, 100, 36);
+        cancel.frame = CGRectMake(sb.size.width/2+10, sb.size.height-100, 100, 36);
         cancel.backgroundColor = [UIColor colorWithRed:0.8 green:0.2 blue:0.2 alpha:1];
         cancel.layer.cornerRadius = 18;
         [cancel setTitle:@"取消" forState:UIControlStateNormal];
@@ -2089,6 +2099,8 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         objc_setAssociatedObject(overlay, "task", task, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         objc_setAssociatedObject(overlay, "xTag", @(xTag), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         objc_setAssociatedObject(overlay, "yTag", @(yTag), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        // 保存当前选中坐标，默认屏幕中心
+        objc_setAssociatedObject(overlay, "curPt", [NSValue valueWithCGPoint:CGPointMake(sb.size.width/2, sb.size.height/2)], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
         
         UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(pickerForEditPan:)];
         [overlay addGestureRecognizer:pan];
@@ -2105,11 +2117,22 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
     [bg viewWithTag:903].center = pt;
     UILabel *hint = [bg viewWithTag:904];
     hint.text = [NSString stringWithFormat:@"选中: (%.0f, %.0f)", pt.x, pt.y];
-    if (g.state == UIGestureRecognizerStateEnded) [self pickerForEditConfirm:pt];
+    // 保存当前选中坐标
+    objc_setAssociatedObject(bg, "curPt", [NSValue valueWithCGPoint:pt], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    // 不移除自动确认，让用户点击「保存坐标」按钮确认
 }
 
 - (void)pickerForEditTap:(UITapGestureRecognizer *)g {
-    [self pickerForEditConfirm:[g locationInView:g.view]];
+    CGPoint pt = [g locationInView:g.view];
+    UIView *bg = g.view;
+    [bg viewWithTag:901].frame = CGRectMake(pt.x-40, pt.y-0.5, 80, 1);
+    [bg viewWithTag:902].frame = CGRectMake(pt.x-0.5, pt.y-40, 1, 80);
+    [bg viewWithTag:903].center = pt;
+    UILabel *hint = [bg viewWithTag:904];
+    hint.text = [NSString stringWithFormat:@"选中: (%.0f, %.0f)", pt.x, pt.y];
+    // 保存当前选中坐标
+    objc_setAssociatedObject(bg, "curPt", [NSValue valueWithCGPoint:pt], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    // 不移除自动确认，让用户点击「保存坐标」按钮确认
 }
 
 - (void)pickerForEditConfirm:(CGPoint)pt {
@@ -2146,6 +2169,13 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         // 重新打开编辑面板
         if (task) [self showEditPanel:task];
     });
+}
+
+- (void)onPickerForEditSave {
+    UIView *bg = g_pickerWin.rootViewController.view.subviews.firstObject;
+    NSValue *ptValue = objc_getAssociatedObject(bg, "curPt");
+    CGPoint pt = [ptValue CGPointValue];
+    [self pickerForEditConfirm:pt];
 }
 
 // ==================== 移动任务 ====================
@@ -2346,10 +2376,29 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         UILongPressGestureRecognizer *longPress = [[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(onItemLongPress:)];
         [item addGestureRecognizer:longPress];
         
+        // 点击编辑
+        UITapGestureRecognizer *tapEdit = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(onTaskItemTap:)];
+        tapEdit.numberOfTapsRequired = 1;
+        tapEdit.delegate = (id<UIGestureRecognizerDelegate>)self;
+        [item addGestureRecognizer:tapEdit];
+        
         [scroll addSubview:item];
         ly += thisItemH + 4;
     }
     scroll.contentSize = CGSizeMake(scroll.frame.size.width, ly + 4);
+}
+
+// 点击任务条目直接编辑
+- (void)onTaskItemTap:(UITapGestureRecognizer *)g {
+    if (g_isRunning) {
+        [self addLog:@"运行中不可编辑"];
+        return;
+    }
+    UIView *item = g.view;
+    NSInteger idx = item.tag;
+    if (idx < 0 || idx >= g_taskList.count) return;
+    ACTask *task = g_taskList[idx];
+    [self showEditPanel:task];
 }
 
 // 任务条目⋮更多按钮：原地弹出菜单（编辑/复制/删除）
@@ -2900,63 +2949,41 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         [vc.view addSubview:bg];
 
         UILabel *hint = [[UILabel alloc] initWithFrame:CGRectMake(20, 60, sb.size.width-40, 36)];
-        hint.text = @"拖动选框移动，拖拽角/边调整大小"; hint.textColor = UIColor.whiteColor;
+        hint.text = @"从左上角拖动到右下角自由选择区域"; hint.textColor = UIColor.whiteColor;
         hint.textAlignment = NSTextAlignmentCenter;
         hint.font = [UIFont boldSystemFontOfSize:15];
         hint.backgroundColor = [UIColor colorWithWhite:0 alpha:0.6];
         hint.layer.cornerRadius = 10; hint.clipsToBounds = YES; hint.tag = 5001;
         [bg addSubview:hint];
 
-        // 选择框
-        UIView *box = [[UIView alloc] initWithFrame:CGRectMake(sb.size.width/4, sb.size.height/4, sb.size.width/2, sb.size.height/4)];
-        box.layer.borderColor = [UIColor colorWithRed:1 green:0.3 blue:0.3 alpha:0.9].CGColor;
-        box.layer.borderWidth = 2.5;
-        box.layer.cornerRadius = 4;
-        box.backgroundColor = [UIColor colorWithRed:1 green:0.3 blue:0.3 alpha:0.08];
-        box.tag = 5002;
-        bg.userInteractionEnabled = YES;
-        [bg addSubview:box];
+        // 十字光标起点
+        UIView *hLine = [[UIView alloc] initWithFrame:CGRectZero];
+        hLine.backgroundColor = [UIColor colorWithRed:1 green:0.2 blue:0.2 alpha:0.9]; hLine.tag = 5004;
+        hLine.hidden = YES;
+        [bg addSubview:hLine];
+        UIView *vLine = [[UIView alloc] initWithFrame:CGRectZero];
+        vLine.backgroundColor = [UIColor colorWithRed:1 green:0.2 blue:0.2 alpha:0.9]; vLine.tag = 5005;
+        vLine.hidden = YES;
+        [bg addSubview:vLine];
+
+        // 选中区域框（透明红色边框）
+        UIView *selectionBox = [[UIView alloc] initWithFrame:CGRectZero];
+        selectionBox.layer.borderColor = [UIColor colorWithRed:1 green:0.3 blue:0.3 alpha:0.9].CGColor;
+        selectionBox.layer.borderWidth = 2.5;
+        selectionBox.backgroundColor = [UIColor colorWithRed:1 green:0.3 blue:0.3 alpha:0.08];
+        selectionBox.tag = 5002;
+        selectionBox.hidden = YES;
+        [bg addSubview:selectionBox];
 
         // 尺寸标签
-        UILabel *sizeLb = [[UILabel alloc] initWithFrame:CGRectMake(0, -20, 120, 18)];
-        sizeLb.text = [NSString stringWithFormat:@"%.0fx%.0f", box.frame.size.width, box.frame.size.height];
+        UILabel *sizeLb = [[UILabel alloc] initWithFrame:CGRectZero];
         sizeLb.textColor = UIColor.whiteColor; sizeLb.font = [UIFont systemFontOfSize:11];
         sizeLb.textAlignment = NSTextAlignmentCenter;
         sizeLb.backgroundColor = [UIColor colorWithWhite:0 alpha:0.6];
         sizeLb.layer.cornerRadius = 4; sizeLb.clipsToBounds = YES;
         sizeLb.tag = 5003;
-        [box addSubview:sizeLb];
-
-        // 8个拖拽手柄（四角+四边中点）
-        CGFloat handleSize = 24;
-        NSArray *handles = @[
-            @[@0, @0, @(NSTextAlignmentLeft),    @"topLeft"],
-            @[@(box.frame.size.width/2-handleSize/2), @(-handleSize/2), @(NSTextAlignmentCenter), @"top"],
-            @[@(box.frame.size.width-handleSize), @0, @(NSTextAlignmentRight), @"topRight"],
-            @[@(box.frame.size.width-handleSize/2), @(box.frame.size.height/2-handleSize/2), @(NSTextAlignmentCenter), @"right"],
-            @[@(box.frame.size.width-handleSize), @(box.frame.size.height-handleSize), @(NSTextAlignmentRight), @"bottomRight"],
-            @[@(box.frame.size.width/2-handleSize/2), @(box.frame.size.height-handleSize/2), @(NSTextAlignmentCenter), @"bottom"],
-            @[@0, @(box.frame.size.height-handleSize), @(NSTextAlignmentLeft), @"bottomLeft"],
-            @[@(-handleSize/2), @(box.frame.size.height/2-handleSize/2), @(NSTextAlignmentCenter), @"left"],
-        ];
-        for (NSArray *h in handles) {
-            CGFloat hx = [h[0] floatValue], hy = [h[1] floatValue];
-            UIView *dot = [[UIView alloc] initWithFrame:CGRectMake(hx, hy, handleSize, handleSize)];
-            dot.backgroundColor = [UIColor whiteColor];
-            dot.layer.cornerRadius = handleSize/2;
-            dot.layer.borderColor = [UIColor colorWithRed:1 green:0.3 blue:0.3 alpha:1].CGColor;
-            dot.layer.borderWidth = 2;
-            dot.tag = [handles indexOfObject:h] + 5100;
-            objc_setAssociatedObject(dot, "dir", h[3], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
-            // 注意：此处先不关联box，因为box还没加到bg上
-            UIPanGestureRecognizer *ph = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handleDrag:)];
-            [dot addGestureRecognizer:ph];
-            [box addSubview:dot];
-        }
-
-        // 框拖动
-        UIPanGestureRecognizer *boxPan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(boxPan:)];
-        [box addGestureRecognizer:boxPan];
+        sizeLb.hidden = YES;
+        [bg addSubview:sizeLb];
 
         // 确认/取消按钮
         UIButton *confirmBtn = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -2966,6 +2993,8 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         [confirmBtn setTitle:@"确认" forState:UIControlStateNormal];
         [confirmBtn setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
         confirmBtn.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+        confirmBtn.enabled = NO;
+        confirmBtn.alpha = 0.5;
         [confirmBtn addTarget:self action:@selector(onRegionConfirm) forControlEvents:UIControlEventTouchUpInside];
         [bg addSubview:confirmBtn];
 
@@ -2979,8 +3008,71 @@ static NSMutableArray *g_timerTimes;  // 多个定时时间点: NSString @"HH:mm
         [cancelBtn addTarget:self action:@selector(onRegionCancel) forControlEvents:UIControlEventTouchUpInside];
         [bg addSubview:cancelBtn];
 
+        // 存储状态
         objc_setAssociatedObject(bg, "task", task, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(bg, "startPoint", [NSNull null], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        objc_setAssociatedObject(bg, "confirmBtn", confirmBtn, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+
+        // 拖拽手势 - 自由选择
+        UIPanGestureRecognizer *pan = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(regionPan:)];
+        [bg addGestureRecognizer:pan];
     });
+}
+
+// 自由区域选择拖拽
+- (void)regionPan:(UIPanGestureRecognizer *)g {
+    CGPoint pt = [g locationInView:g.view];
+    UIView *bg = g.view;
+    CGRect sb = UIScreen.mainScreen.bounds;
+
+    UIView *hLine = [bg viewWithTag:5004];
+    UIView *vLine = [bg viewWithTag:5005];
+    UIView *box = [bg viewWithTag:5002];
+    UILabel *sizeLb = [bg viewWithTag:5003];
+    UIButton *confirmBtn = objc_getAssociatedObject(bg, "confirmBtn");
+
+    if (g.state == UIGestureRecognizerStateBegan) {
+        // 开始选择 - 记录起点
+        objc_setAssociatedObject(bg, "startPoint", [NSValue valueWithCGPoint:pt], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+        hLine.hidden = NO;
+        vLine.hidden = NO;
+        box.hidden = NO;
+        sizeLb.hidden = NO;
+    } else if (g.state == UIGestureRecognizerStateChanged) {
+        // 更新选择区域
+        NSValue *startVal = objc_getAssociatedObject(bg, "startPoint");
+        if (!startVal || [startVal isKindOfClass:[NSNull class]]) return;
+
+        CGPoint start = [startVal CGPointValue];
+        CGFloat minX = MIN(start.x, pt.x);
+        CGFloat maxX = MAX(start.x, pt.x);
+        CGFloat minY = MIN(start.y, pt.y);
+        CGFloat maxY = MAX(start.y, pt.y);
+        CGFloat width = maxX - minX;
+        CGFloat height = maxY - minY;
+
+        // 更新十字线显示起点
+        hLine.frame = CGRectMake(minX, start.y - 0.5, width, 1);
+        vLine.frame = CGRectMake(start.x - 0.5, minY, 1, height);
+        box.frame = CGRectMake(minX, minY, width, height);
+
+        // 更新尺寸标签（放在框底部）
+        sizeLb.frame = CGRectMake(minX + (width-120)/2, maxY + 2, 120, 18);
+        sizeLb.text = [NSString stringWithFormat:@"%.0fx%.0f", width, height];
+        sizeLb.hidden = NO;
+
+        // 启用确认按钮（最小尺寸30x30）
+        if (width >= 30 && height >= 30) {
+            confirmBtn.enabled = YES;
+            confirmBtn.alpha = 1.0;
+        } else {
+            confirmBtn.enabled = NO;
+            confirmBtn.alpha = 0.5;
+        }
+
+        // 更新当前选中区域
+        objc_setAssociatedObject(bg, "selectedRegion", [NSValue valueWithCGRect:box.frame], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+    }
 }
 
 // 框拖动
@@ -3587,87 +3679,89 @@ static NSString *profilesArchivePath(void) {
 // ==================== 脚本管理面板 ====================
 - (void)onScriptManage {
     [self dismissSettings];
-    CGRect sb = UIScreen.mainScreen.bounds;
-    CGFloat pw = 280, ph = 400;
-    UIView *mask = [[UIView alloc] initWithFrame:sb];
-    mask.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];
-    mask.tag = 997;
-    [g_panel.superview addSubview:mask];
-    
-    UIView *card = [[UIView alloc] initWithFrame:CGRectMake((sb.size.width-pw)/2, (sb.size.height-ph)/2, pw, ph)];
-    card.backgroundColor = [UIColor colorWithWhite:0.12 alpha:0.98];
-    card.layer.cornerRadius = 14;
-    card.clipsToBounds = YES;
-    [mask addSubview:card];
-    
-    // 标题栏
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 12, pw, 28)];
-    title.text = @"📦 脚本管理";
-    title.textColor = UIColor.whiteColor;
-    title.textAlignment = NSTextAlignmentCenter;
-    title.font = [UIFont boldSystemFontOfSize:17];
-    [card addSubview:title];
-    
-    // 当前脚本指示
-    UILabel *curLabel = [[UILabel alloc] initWithFrame:CGRectMake(16, 44, pw-32, 18)];
-    NSString *curName = (g_currentProfileIndex < g_profiles.count) ? g_profiles[g_currentProfileIndex][@"name"] : @"默认";
-    curLabel.text = [NSString stringWithFormat:@"当前: %@", curName];
-    curLabel.textColor = [UIColor colorWithRed:0.3 green:0.7 blue:1 alpha:1];
-    curLabel.font = [UIFont systemFontOfSize:12];
-    [card addSubview:curLabel];
-    
-    // 脚本列表
-    CGFloat listY = 66;
-    CGFloat listH = ph - 66 - 50;
-    UIScrollView *scroll = [[UIScrollView alloc] initWithFrame:CGRectMake(0, listY, pw, listH)];
-    scroll.showsVerticalScrollIndicator = NO;
-    [card addSubview:scroll];
-    
-    CGFloat sy = 0;
-    CGFloat itemH = 44;
-    CGFloat sw = pw - 32;
-    
-    // 默认脚本
-    UIView *defaultRow = [self createScriptRow:scroll y:sy w:sw h:itemH name:@"默认" idx:-1];
-    [scroll addSubview:defaultRow];
-    sy += itemH + 4;
-    
-    for (int i = 0; i < g_profiles.count; i++) {
-        NSDictionary *prof = g_profiles[i];
-        NSString *name = prof[@"name"] ?: [NSString stringWithFormat:@"脚本%d", i];
-        UIView *row = [self createScriptRow:scroll y:sy w:sw h:itemH name:name idx:i];
-        [scroll addSubview:row];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        CGRect sb = UIScreen.mainScreen.bounds;
+        CGFloat pw = 280, ph = 400;
+        UIView *mask = [[UIView alloc] initWithFrame:sb];
+        mask.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];
+        mask.tag = 997;
+        [g_panel.superview addSubview:mask];
+        
+        UIView *card = [[UIView alloc] initWithFrame:CGRectMake((sb.size.width-pw)/2, (sb.size.height-ph)/2, pw, ph)];
+        card.backgroundColor = [UIColor colorWithWhite:0.12 alpha:0.98];
+        card.layer.cornerRadius = 14;
+        card.clipsToBounds = YES;
+        [mask addSubview:card];
+        
+        // 标题栏
+        UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 12, pw, 28)];
+        title.text = @"📦 脚本管理";
+        title.textColor = UIColor.whiteColor;
+        title.textAlignment = NSTextAlignmentCenter;
+        title.font = [UIFont boldSystemFontOfSize:17];
+        [card addSubview:title];
+        
+        // 当前脚本指示
+        UILabel *curLabel = [[UILabel alloc] initWithFrame:CGRectMake(16, 44, pw-32, 18)];
+        NSString *curName = (g_currentProfileIndex < g_profiles.count) ? g_profiles[g_currentProfileIndex][@"name"] : @"默认";
+        curLabel.text = [NSString stringWithFormat:@"当前: %@", curName];
+        curLabel.textColor = [UIColor colorWithRed:0.3 green:0.7 blue:1 alpha:1];
+        curLabel.font = [UIFont systemFontOfSize:12];
+        [card addSubview:curLabel];
+        
+        // 脚本列表
+        CGFloat listY = 66;
+        CGFloat listH = ph - 66 - 50;
+        UIScrollView *scroll = [[UIScrollView alloc] initWithFrame:CGRectMake(0, listY, pw, listH)];
+        scroll.showsVerticalScrollIndicator = NO;
+        [card addSubview:scroll];
+        
+        CGFloat sy = 0;
+        CGFloat itemH = 44;
+        CGFloat sw = pw - 32;
+        
+        // 默认脚本
+        UIView *defaultRow = [self createScriptRow:scroll y:sy w:sw h:itemH name:@"默认" idx:-1];
+        [scroll addSubview:defaultRow];
         sy += itemH + 4;
-    }
-    
-    // 新建脚本按钮
-    UIButton *newBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    newBtn.frame = CGRectMake(16, sy, sw, 38);
-    newBtn.backgroundColor = [UIColor colorWithRed:0.2 green:0.5 blue:0.8 alpha:1];
-    newBtn.layer.cornerRadius = 10;
-    [newBtn setTitle:@"+ 新建脚本" forState:UIControlStateNormal];
-    [newBtn setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    newBtn.titleLabel.font = [UIFont boldSystemFontOfSize:14];
-    [newBtn addTarget:self action:@selector(onScriptMgrNew) forControlEvents:UIControlEventTouchUpInside];
-    [scroll addSubview:newBtn];
-    sy += 44;
-    
-    scroll.contentSize = CGSizeMake(sw, sy);
-    
-    // 关闭按钮 - 红色醒目
-    UIButton *closeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-    closeBtn.frame = CGRectMake(pw/2-60, ph-48, 120, 34);
-    closeBtn.backgroundColor = [UIColor colorWithRed:0.75 green:0.15 blue:0.15 alpha:1];
-    closeBtn.layer.cornerRadius = 17;
-    [closeBtn setTitle:@"关闭" forState:UIControlStateNormal];
-    [closeBtn setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
-    closeBtn.titleLabel.font = [UIFont boldSystemFontOfSize:15];
-    [closeBtn addTarget:self action:@selector(dismissScriptMgr) forControlEvents:UIControlEventTouchUpInside];
-    [card addSubview:closeBtn];
-    
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissScriptMgr)];
-    tap.cancelsTouchesInView = NO;
-    [mask addGestureRecognizer:tap];
+        
+        for (int i = 0; i < g_profiles.count; i++) {
+            NSDictionary *prof = g_profiles[i];
+            NSString *name = prof[@"name"] ?: [NSString stringWithFormat:@"脚本%d", i];
+            UIView *row = [self createScriptRow:scroll y:sy w:sw h:itemH name:name idx:i];
+            [scroll addSubview:row];
+            sy += itemH + 4;
+        }
+        
+        // 新建脚本按钮
+        UIButton *newBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        newBtn.frame = CGRectMake(16, sy, sw, 38);
+        newBtn.backgroundColor = [UIColor colorWithRed:0.2 green:0.5 blue:0.8 alpha:1];
+        newBtn.layer.cornerRadius = 10;
+        [newBtn setTitle:@"+ 新建脚本" forState:UIControlStateNormal];
+        [newBtn setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+        newBtn.titleLabel.font = [UIFont boldSystemFontOfSize:14];
+        [newBtn addTarget:self action:@selector(onScriptMgrNew) forControlEvents:UIControlEventTouchUpInside];
+        [scroll addSubview:newBtn];
+        sy += 44;
+        
+        scroll.contentSize = CGSizeMake(sw, sy);
+        
+        // 关闭按钮 - 红色醒目
+        UIButton *closeBtn = [UIButton buttonWithType:UIButtonTypeCustom];
+        closeBtn.frame = CGRectMake(pw/2-60, ph-48, 120, 34);
+        closeBtn.backgroundColor = [UIColor colorWithRed:0.75 green:0.15 blue:0.15 alpha:1];
+        closeBtn.layer.cornerRadius = 17;
+        [closeBtn setTitle:@"关闭" forState:UIControlStateNormal];
+        [closeBtn setTitleColor:UIColor.whiteColor forState:UIControlStateNormal];
+        closeBtn.titleLabel.font = [UIFont boldSystemFontOfSize:15];
+        [closeBtn addTarget:self action:@selector(dismissScriptMgr) forControlEvents:UIControlEventTouchUpInside];
+        [card addSubview:closeBtn];
+        
+        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissScriptMgr)];
+        tap.cancelsTouchesInView = NO;
+        [mask addGestureRecognizer:tap];
+    });
 }
 - (UIView *)createScriptRow:(UIScrollView *)scroll y:(CGFloat)y w:(CGFloat)w h:(CGFloat)h name:(NSString *)name idx:(NSInteger)idx {
     UIView *row = [[UIView alloc] initWithFrame:CGRectMake(16, y, w, h)];
@@ -3781,92 +3875,99 @@ static NSString *profilesArchivePath(void) {
 
 // ==================== 导出/导入 ====================
 - (void)onExportTasks {
-    // 导出当前任务为JSON文件到Documents
-    NSMutableArray *jsonArr = [NSMutableArray array];
-    for (ACTask *t in g_taskList) {
-        NSMutableDictionary *d = [NSMutableDictionary dictionary];
-        if (t.type) d[@"type"] = t.type;
-        if (t.desc) d[@"desc"] = t.desc;
-        d[@"repeatCount"] = @(t.repeatCount);
-        d[@"postWait"] = @(t.postWait);
-        d[@"x"] = @(t.x); d[@"y"] = @(t.y);
-        d[@"x2"] = @(t.x2); d[@"y2"] = @(t.y2);
-        d[@"holdMs"] = @(t.holdMs);
-        d[@"doubleClickInterval"] = @(t.doubleClickInterval);
-        d[@"duration"] = @(t.duration);
-        if (t.targetText) d[@"targetText"] = t.targetText;
-        if (t.templateData) d[@"templateData"] = [t.templateData base64EncodedStringWithOptions:0];
-        d[@"threshold"] = @(t.threshold);
-        d[@"actionAfterFound"] = @(t.actionAfterFound);
-        d[@"r"] = @(t.r); d[@"g"] = @(t.g); d[@"b"] = @(t.b);
-        d[@"conditionType"] = @(t.conditionType);
-        d[@"gotoIndex"] = @(t.gotoIndex);
-        [jsonArr addObject:d];
-    }
-    NSError *err = nil;
-    NSData *data = [NSJSONSerialization dataWithJSONObject:jsonArr options:NSJSONWritingPrettyPrinted error:&err];
-    if (!data) { [self addLog:@"导出失败: 序列化错误"]; return; }
-    // 保存到文件
-    NSString *name = @"胖虎脚本";
-    if (g_currentProfileIndex < g_profiles.count) {
-        name = g_profiles[g_currentProfileIndex][@"name"];
-    }
-    NSDateFormatter *fmt = [[NSDateFormatter alloc] init];
-    fmt.dateFormat = @"yyyyMMdd_HHmmss";
-    NSString *fname = [NSString stringWithFormat:@"%@_%@.json", name, [fmt stringFromDate:[NSDate date]]];
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *fpath = [paths.firstObject stringByAppendingPathComponent:fname];
-    [data writeToFile:fpath atomically:YES];
-    [self addLog:[NSString stringWithFormat:@"已导出: %@ (%lu bytes)", fname, (unsigned long)data.length]];
+    // 先关闭设置面板，再导出
+    [self dismissSettings];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        // 导出当前任务为JSON文件到Documents
+        NSMutableArray *jsonArr = [NSMutableArray array];
+        for (ACTask *t in g_taskList) {
+            NSMutableDictionary *d = [NSMutableDictionary dictionary];
+            if (t.type) d[@"type"] = t.type;
+            if (t.desc) d[@"desc"] = t.desc;
+            d[@"repeatCount"] = @(t.repeatCount);
+            d[@"postWait"] = @(t.postWait);
+            d[@"x"] = @(t.x); d[@"y"] = @(t.y);
+            d[@"x2"] = @(t.x2); d[@"y2"] = @(t.y2);
+            d[@"holdMs"] = @(t.holdMs);
+            d[@"doubleClickInterval"] = @(t.doubleClickInterval);
+            d[@"duration"] = @(t.duration);
+            if (t.targetText) d[@"targetText"] = t.targetText;
+            if (t.templateData) d[@"templateData"] = [t.templateData base64EncodedStringWithOptions:0];
+            d[@"threshold"] = @(t.threshold);
+            d[@"actionAfterFound"] = @(t.actionAfterFound);
+            d[@"r"] = @(t.r); d[@"g"] = @(t.g); d[@"b"] = @(t.b);
+            d[@"conditionType"] = @(t.conditionType);
+            d[@"gotoIndex"] = @(t.gotoIndex);
+            [jsonArr addObject:d];
+        }
+        NSError *err = nil;
+        NSData *data = [NSJSONSerialization dataWithJSONObject:jsonArr options:NSJSONWritingPrettyPrinted error:&err];
+        if (!data) { [self addLog:@"导出失败: 序列化错误"]; return; }
+        // 保存到文件
+        NSString *name = @"胖虎脚本";
+        if (g_currentProfileIndex < g_profiles.count) {
+            name = g_profiles[g_currentProfileIndex][@"name"];
+        }
+        NSDateFormatter *fmt = [[NSDateFormatter alloc] init];
+        fmt.dateFormat = @"yyyyMMdd_HHmmss";
+        NSString *fname = [NSString stringWithFormat:@"%@_%@.json", name, [fmt stringFromDate:[NSDate date]]];
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *fpath = [paths.firstObject stringByAppendingPathComponent:fname];
+        [data writeToFile:fpath atomically:YES];
+        [self addLog:[NSString stringWithFormat:@"已导出: %@ (%lu bytes)", fname, (unsigned long)data.length]];
+    });
 }
 - (void)onImportTasks {
-    // 从文件导入 - 显示Documents目录下的JSON文件列表供选择
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *docDir = paths.firstObject;
-    NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:docDir error:nil];
-    NSMutableArray *jsonFiles = [NSMutableArray array];
-    for (NSString *f in files) {
-        if ([f hasSuffix:@".json"]) [jsonFiles addObject:f];
-    }
-    if (jsonFiles.count == 0) {
-        [self addLog:@"没有可导入的JSON文件"];
-        return;
-    }
-    // 弹出选择列表
-    CGRect sb = UIScreen.mainScreen.bounds;
-    CGFloat mw = 240, mh = MIN(300, jsonFiles.count * 44 + 50);
-    CGFloat mx = (sb.size.width-mw)/2, my = (sb.size.height-mh)/2;
-    UIView *mask = [[UIView alloc] initWithFrame:sb];
-    mask.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];
-    mask.tag = 997;
-    [g_panel.superview addSubview:mask];
-    
-    UIView *menu = [[UIView alloc] initWithFrame:CGRectMake(mx, my, mw, mh)];
-    menu.backgroundColor = [UIColor colorWithWhite:0.12 alpha:0.98];
-    menu.layer.cornerRadius = 14; menu.clipsToBounds = YES;
-    [mask addSubview:menu];
-    
-    UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 8, mw, 30)];
-    title.text = @"选择导入文件"; title.textColor = UIColor.whiteColor;
-    title.textAlignment = NSTextAlignmentCenter; title.font = [UIFont boldSystemFontOfSize:15];
-    [menu addSubview:title];
-    
-    CGFloat y = 44;
-    for (NSString *f in jsonFiles) {
-        UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
-        btn.frame = CGRectMake(10, y, mw-20, 36);
-        btn.backgroundColor = [UIColor colorWithWhite:0.2 alpha:1];
-        btn.layer.cornerRadius = 8;
-        [btn setTitle:f forState:UIControlStateNormal];
-        [btn setTitleColor:UIColor.lightGrayColor forState:UIControlStateNormal];
-        btn.titleLabel.font = [UIFont systemFontOfSize:12];
-        objc_setAssociatedObject(btn, "fpath", [docDir stringByAppendingPathComponent:f], OBJC_ASSOCIATION_RETAIN);
-        [btn addTarget:self action:@selector(doImportFile:) forControlEvents:UIControlEventTouchUpInside];
-        [menu addSubview:btn];
-        y += 40;
-    }
-    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissImportMenu)];
-    [mask addGestureRecognizer:tap];
+    // 从文件导入 - 先关闭设置面板，再显示导入列表
+    [self dismissSettings];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+        NSString *docDir = paths.firstObject;
+        NSArray *files = [[NSFileManager defaultManager] contentsOfDirectoryAtPath:docDir error:nil];
+        NSMutableArray *jsonFiles = [NSMutableArray array];
+        for (NSString *f in files) {
+            if ([f hasSuffix:@".json"]) [jsonFiles addObject:f];
+        }
+        if (jsonFiles.count == 0) {
+            [self addLog:@"没有可导入的JSON文件"];
+            return;
+        }
+        // 弹出选择列表
+        CGRect sb = UIScreen.mainScreen.bounds;
+        CGFloat mw = 240, mh = MIN(300, jsonFiles.count * 44 + 50);
+        CGFloat mx = (sb.size.width-mw)/2, my = (sb.size.height-mh)/2;
+        UIView *mask = [[UIView alloc] initWithFrame:sb];
+        mask.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];
+        mask.tag = 997;
+        [g_panel.superview addSubview:mask];
+        
+        UIView *menu = [[UIView alloc] initWithFrame:CGRectMake(mx, my, mw, mh)];
+        menu.backgroundColor = [UIColor colorWithWhite:0.12 alpha:0.98];
+        menu.layer.cornerRadius = 14; menu.clipsToBounds = YES;
+        [mask addSubview:menu];
+        
+        UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 8, mw, 30)];
+        title.text = @"选择导入文件"; title.textColor = UIColor.whiteColor;
+        title.textAlignment = NSTextAlignmentCenter; title.font = [UIFont boldSystemFontOfSize:15];
+        [menu addSubview:title];
+        
+        CGFloat y = 44;
+        for (NSString *f in jsonFiles) {
+            UIButton *btn = [UIButton buttonWithType:UIButtonTypeCustom];
+            btn.frame = CGRectMake(10, y, mw-20, 36);
+            btn.backgroundColor = [UIColor colorWithWhite:0.2 alpha:1];
+            btn.layer.cornerRadius = 8;
+            [btn setTitle:f forState:UIControlStateNormal];
+            [btn setTitleColor:UIColor.lightGrayColor forState:UIControlStateNormal];
+            btn.titleLabel.font = [UIFont systemFontOfSize:12];
+            objc_setAssociatedObject(btn, "fpath", [docDir stringByAppendingPathComponent:f], OBJC_ASSOCIATION_RETAIN);
+            [btn addTarget:self action:@selector(doImportFile:) forControlEvents:UIControlEventTouchUpInside];
+            [menu addSubview:btn];
+            y += 40;
+        }
+        UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(dismissImportMenu)];
+        [mask addGestureRecognizer:tap];
+    });
 }
 - (void)dismissImportMenu {
     [[g_panel.superview viewWithTag:997] removeFromSuperview];
@@ -3913,7 +4014,7 @@ static NSString *profilesArchivePath(void) {
 // ==================== 设置面板 ====================
 - (void)onSettingsTap {
     CGRect sb = UIScreen.mainScreen.bounds;
-    CGFloat cw = 280, ch = 380;
+    CGFloat cw = 280, ch = 420;
     UIView *mask = [[UIView alloc] initWithFrame:sb];
     mask.backgroundColor = [UIColor colorWithWhite:0 alpha:0.5];
     mask.tag = 998;
@@ -3930,7 +4031,7 @@ static NSString *profilesArchivePath(void) {
     title.textAlignment = NSTextAlignmentCenter; title.font = [UIFont boldSystemFontOfSize:17];
     [card addSubview:title];
     
-    UIScrollView *scroll = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 44, cw, ch-100)];
+    UIScrollView *scroll = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 44, cw, ch-80)];
     scroll.showsVerticalScrollIndicator = NO;
     [card addSubview:scroll];
     
@@ -4153,16 +4254,20 @@ static NSString *profilesArchivePath(void) {
         [g_timerTimes removeObjectAtIndex:idx];
         // 刷新设置面板
         [self dismissSettings];
-        [self onSettingsTap];
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self onSettingsTap];
+        });
     }
 }
 - (void)onTimerSwitch:(UISwitch *)s {
     g_timerEnabled = s.on;
     [self dismissSettings];
-    [self onSettingsTap];
-    if (g_timerEnabled && g_timerTimes.count > 0) {
-        [self startTimerCheck];
-    }
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.3*NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self onSettingsTap];
+        if (g_timerEnabled && g_timerTimes.count > 0) {
+            [self startTimerCheck];
+        }
+    });
 }
 - (void)onTimerPick {
     CGRect sb = UIScreen.mainScreen.bounds;
@@ -4805,7 +4910,7 @@ static NSString *profilesArchivePath(void) {
         
         // 确定按钮
         UIButton *confirmBtn = [UIButton buttonWithType:UIButtonTypeCustom];
-        confirmBtn.frame = CGRectMake(sb.size.width/2-110, sb.size.height-100, 100, 36);
+        confirmBtn.frame = CGRectMake(sb.size.width/2-110, sb.size.height-120, 100, 36);
         confirmBtn.backgroundColor = [UIColor colorWithRed:0.2 green:0.6 blue:0.2 alpha:1];
         confirmBtn.layer.cornerRadius = 18;
         [confirmBtn setTitle:@"确定" forState:UIControlStateNormal];
@@ -4815,7 +4920,7 @@ static NSString *profilesArchivePath(void) {
         [bg addSubview:confirmBtn];
         
         UIButton *cancel = [UIButton buttonWithType:UIButtonTypeCustom];
-        cancel.frame = CGRectMake(sb.size.width/2+10, sb.size.height-100, 100, 36);
+        cancel.frame = CGRectMake(sb.size.width/2+10, sb.size.height-120, 100, 36);
         cancel.backgroundColor = [UIColor colorWithRed:0.8 green:0.2 blue:0.2 alpha:1];
         cancel.layer.cornerRadius = 18;
         [cancel setTitle:@"取消" forState:UIControlStateNormal];
