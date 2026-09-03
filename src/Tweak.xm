@@ -1,4 +1,4 @@
-#include <substrate.h>
+// 注: 本 dylib 为巨魔(TrollStore)专用, 不依赖 CydiaSubstrate, 故移除 #include <substrate.h>
 #import <UIKit/UIKit.h>
 #import <dlfcn.h>
 #import <mach/mach_time.h>
