@@ -17,7 +17,6 @@ static void swizzleSendEvent(BOOL hook);
 // ==================== IOHIDEvent ====================
 typedef struct __IOHIDEvent *IOHIDEventRef;
 typedef struct __IOHIDEventSystemClient *IOHIDEventSystemClientRef;
-typedef struct __IOHIDUserDevice *IOHIDUserDeviceRef;
 typedef double IOHIDFloat;
 static IOHIDEventRef (*$IOHIDEventCreateDigitizerEvent)(CFAllocatorRef,uint64_t,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t,IOHIDFloat,IOHIDFloat,IOHIDFloat,IOHIDFloat,IOHIDFloat,unsigned char,unsigned char,unsigned int);
 static void (*$clientDispatch)(IOHIDEventSystemClientRef, IOHIDEventRef);
@@ -43,7 +42,16 @@ static void (*$IOHIDEventSetSenderID)(IOHIDEventRef,uint64_t);
 #define kIOHIDEventFieldDigitizerIsDisplayIntegrated 0x0B0019
 #define kIOHIDEventFieldDigitizerContextID 0x0B0006
 
-#define kIOHIDEventDigitizerSenderID 0x000000010000027F
+#define kIOHIDEventDigitizerSenderID 0x8000000817319375
+
+// 诊断日志: 同时输出到系统日志和连点器浮窗日志区(前缀 [触])
+static void ACLog(NSString *msg) {
+    NSLog(@"[AC] %@", msg);
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"ACLog"
+                                                            object:[NSString stringWithFormat:@"[触] %@", msg]];
+    });
+}
 
 // ---- TrollStore 兼容: 虚拟 HID 触摸设备 ----
 // 在非越狱(巨魔)环境, 进程无 SpringBoard 特权, 直接派发触摸会被系统静默丢弃。
@@ -51,6 +59,10 @@ static void (*$IOHIDEventSetSenderID)(IOHIDEventRef,uint64_t);
 static void resolveIOHID(void);   // 前向声明
 static IOHIDUserDeviceRef (*$IOHIDUserDeviceCreate)(CFAllocatorRef, CFDictionaryRef);
 static void (*$IOHIDUserDeviceScheduleWithRunLoop)(IOHIDUserDeviceRef, CFRunLoopRef, CFStringRef);
+// 获取虚拟设备真实 senderID 所需
+static CFArrayRef (*$IOHIDEventSystemClientCopyServices)(IOHIDEventSystemClientRef);
+static uint64_t (*$IOHIDServiceClientGetSenderID)(void *);
+static CFTypeRef (*$IOHIDServiceClientGetProperty)(void *, CFStringRef);
 
 // 标准触摸屏 HID 报告描述符 (Digitizer / Touch Screen)
 static const uint8_t kTouchscreenDescriptor[] = {
@@ -101,11 +113,43 @@ static IOHIDUserDeviceRef g_virtualTouchDevice = NULL;
 static IOHIDEventSystemClientRef g_iohidClient = NULL;
 static uint64_t g_touchSenderID = kIOHIDEventDigitizerSenderID;
 
+// 创建虚拟设备后, 枚举 HID services 找到我们的虚拟设备(VendorID=0x1234),
+// 取其真实 senderID 覆盖固定值 —— iOS 只认虚拟设备分配的真实 senderID。
+static void refreshVirtualTouchSenderID(void) {
+    if (!g_iohidClient || !$IOHIDEventSystemClientCopyServices || !$IOHIDServiceClientGetSenderID) {
+        ACLog([NSString stringWithFormat:@"senderID 自适应跳过(符号缺失), 暂用固定值 0x%llx", g_touchSenderID]);
+        return;
+    }
+    CFArrayRef services = $IOHIDEventSystemClientCopyServices(g_iohidClient);
+    if (!services) { ACLog(@"枚举 HID services 失败"); return; }
+    for (CFIndex i = 0; i < CFArrayGetCount(services); i++) {
+        void *svc = (void *)CFArrayGetValueAtIndex(services, i);
+        int vid = 0, pid = 0;
+        if ($IOHIDServiceClientGetProperty) {
+            CFNumberRef v = (CFNumberRef)$IOHIDServiceClientGetProperty(svc, CFSTR("VendorID"));
+            CFNumberRef p = (CFNumberRef)$IOHIDServiceClientGetProperty(svc, CFSTR("ProductID"));
+            if (v) CFNumberGetValue(v, kCFNumberSInt32Type, &vid);
+            if (p) CFNumberGetValue(p, kCFNumberSInt32Type, &pid);
+        }
+        if (vid == 0x1234 && pid == 0x5678) {
+            uint64_t sid = $IOHIDServiceClientGetSenderID(svc);
+            if (sid) {
+                g_touchSenderID = sid;
+                ACLog([NSString stringWithFormat:@"已获取虚拟设备真实 senderID: 0x%llx", sid]);
+                CFRelease(services);
+                return;
+            }
+        }
+    }
+    CFRelease(services);
+    ACLog([NSString stringWithFormat:@"未匹配到虚拟设备 service, 暂用固定值 0x%llx", g_touchSenderID]);
+}
+
 // 创建虚拟触摸设备
 static void setupVirtualTouchDevice(void) {
     if (g_virtualTouchDevice) return;
     if (!$IOHIDUserDeviceCreate) resolveIOHID();
-    if (!$IOHIDUserDeviceCreate) { NSLog(@"[AC] IOHIDUserDeviceCreate 不可用"); return; }
+    if (!$IOHIDUserDeviceCreate) { ACLog(@"IOHIDUserDeviceCreate 不可用"); return; }
 
     CFDataRef desc = CFDataCreate(kCFAllocatorDefault, kTouchscreenDescriptor, sizeof(kTouchscreenDescriptor));
     int up = 0x0D, u = 0x04, vid = 0x1234, pid = 0x5678, ver = 1;
@@ -129,9 +173,10 @@ static void setupVirtualTouchDevice(void) {
     g_virtualTouchDevice = $IOHIDUserDeviceCreate(kCFAllocatorDefault, props);
     if (g_virtualTouchDevice) {
         $IOHIDUserDeviceScheduleWithRunLoop(g_virtualTouchDevice, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
-        NSLog(@"[AC] 虚拟触摸设备创建成功 (get-properties OK)");
+        ACLog(@"虚拟触摸设备创建成功 (get-properties OK)");
+        refreshVirtualTouchSenderID();
     } else {
-        NSLog(@"[AC] 虚拟触摸设备创建失败！确认宿主 App 已带 com.apple.private.iokit.get-properties 授权");
+        ACLog(@"虚拟触摸设备创建失败！确认宿主 App 已带 com.apple.private.iokit.get-properties 授权");
     }
     CFRelease(desc); CFRelease(usagePage); CFRelease(usage); CFRelease(vendor); CFRelease(product); CFRelease(version);
     CFRelease(props);
@@ -152,6 +197,9 @@ static void resolveIOHID(void) {
         // 虚拟设备 API (TrollStore 触摸注入需要)
         $IOHIDUserDeviceCreate = dlsym(RTLD_DEFAULT, "IOHIDUserDeviceCreate");
         $IOHIDUserDeviceScheduleWithRunLoop = dlsym(RTLD_DEFAULT, "IOHIDUserDeviceScheduleWithRunLoop");
+        $IOHIDEventSystemClientCopyServices = dlsym(RTLD_DEFAULT, "IOHIDEventSystemClientCopyServices");
+        $IOHIDServiceClientGetSenderID = dlsym(RTLD_DEFAULT, "IOHIDServiceClientGetSenderID");
+        $IOHIDServiceClientGetProperty = dlsym(RTLD_DEFAULT, "IOHIDServiceClientGetProperty");
         NSLog(@"[AC] IOHID: digitizer=%s userdev=%s client=%s dispatch=%s",
             $IOHIDEventCreateDigitizerEvent ? "Y" : "N",
             $IOHIDUserDeviceCreate ? "Y" : "N",
@@ -172,7 +220,8 @@ static void postTouch(CGFloat x, CGFloat y, BOOL touchDown) {
     if (!g_virtualTouchDevice) setupVirtualTouchDevice();
     if (!g_iohidClient && $clientCreate) g_iohidClient = $clientCreate(kCFAllocatorDefault);
     if (!g_virtualTouchDevice || !g_iohidClient) {
-        NSLog(@"[AC] 触摸派发失败: 虚拟设备=%s 客户端=%s", g_virtualTouchDevice ? "Y" : "N", g_iohidClient ? "Y" : "N");
+        ACLog([NSString stringWithFormat:@"触摸派发失败: 虚拟设备=%@ 客户端=%@ senderID=0x%llx",
+               g_virtualTouchDevice ? @"Y" : @"N", g_iohidClient ? @"Y" : @"N", g_touchSenderID]);
         return;
     }
     CGRect sb = UIScreen.mainScreen.bounds;
@@ -5272,7 +5321,7 @@ static NSString *profilesArchivePath(void) {
 }
 @end
 
-// ==================== sendEvent Hook（录制用）====================
+// ==================== sendEvent Hook（录制用＠===================
 static void hook_sendEvent(id self, SEL _cmd, UIEvent *event) {
     orig_sendEvent(self, _cmd, event);
     if (!g_isRecording || !event) return;
@@ -5287,7 +5336,7 @@ static void hook_sendEvent(id self, SEL _cmd, UIEvent *event) {
     }
 }
 
-// 巨魔兼容: 用 method swizzling 替代 MSHookMessageEx, 不依赖 CydiaSubstrate
+// ==================== sendEvent swizzle（巨魔兼容, 替代 MSHookMessageEx）====================
 static void swizzleSendEvent(BOOL hook) {
     Class cls = objc_getClass("UIApplication");
     if (!cls) return;
@@ -5337,11 +5386,11 @@ static void init() {
             }
             if (kw) {
                 @try {
+                    [[ACCtrl shared] setupFloatUI];
                     resolveIOHID();
                     setupVirtualTouchDevice();
-                    [[ACCtrl shared] setupFloatUI];
                     // 巨魔版: 不 hook SpringBoard (普通 App 进程不在 SpringBoard 里)
-                    // 音量键启动
+                    // 音量键启加
                     g_volMon = [[ACVolumeMonitor alloc] init];
                     [g_volMon startListening:^{
                         [[ACCtrl shared] onStartTasks];
