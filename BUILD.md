@@ -1,6 +1,7 @@
-# AutoClicker — 巨魔(TrollStore) dylib 编译与使用
+# 胖虎连点器 — 巨魔(TrollStore) dylib 编译与使用（完整版）
 
-本仓库已改为**巨魔专用 dylib 插件**：用 `IOHIDUserDevice` 虚拟触摸设备注入触摸，
+本分支对应**桌面完整版**「胖虎连点器」UI（左侧 点击/双击/长按/滑动/等待/识图/识字/跳转/条件，底部运行状态）。
+已改为**巨魔专用 dylib 插件**：用 `IOHIDUserDevice` 虚拟触摸设备注入触摸，
 编译产物是独立 dylib（不依赖 CydiaSubstrate），可直接经 TrollFools / TrollStore 注入宿主 App。
 
 ## 编译（GitHub Actions 自动完成）

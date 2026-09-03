@@ -1,8 +1,8 @@
-name: Build AutoClicker dylib (TrollStore)
+name: Build AutoClicker dylib (TrollStore, 胖虎完整版)
 
 on:
   push:
-    branches: [main, ci/build]
+    branches: [main, master, ci/build, ci/build-fatihu]
   workflow_dispatch:
 
 jobs:

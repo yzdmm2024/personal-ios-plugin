@@ -2,15 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <!-- 巨魔(CoreTrust 绕过)可授予的授权, 普通上架 App 拿不到 -->
+    <!-- 允许进程打开 IOKit UserClient, 创建虚拟 HID 设备(触摸注入前提) -->
     <key>com.apple.private.iokit.get-properties</key>
     <true/>
     <key>com.apple.private.iokit.set-properties</key>
     <true/>
+    <!-- 去掉沙盒限制, 让 dylib 能访问所需私有 API -->
     <key>com.apple.private.security.no-sandbox</key>
     <true/>
     <key>com.apple.private.security.container-required</key>
     <false/>
+    <!-- 调试用: 允许 task_for_pid / 附加调试器(可选, 不需要可删) -->
     <key>get-task-allow</key>
+    <true/>
+    <!-- 允许后台运行 / 音频等(按需) -->
+    <key>com.apple.backgroundtask</key>
     <true/>
 </dict>
 </plist>
