@@ -21,14 +21,76 @@ static void (*$IOHIDEventSetIntegerValue)(IOHIDEventRef,uint32_t,int64_t);
 static void (*$IOHIDEventSetFloatValue)(IOHIDEventRef,uint32_t,IOHIDFloat);
 static void (*$IOHIDEventAppendEvent)(IOHIDEventRef,IOHIDEventRef);
 static void (*$IOHIDEventSetSenderID)(IOHIDEventRef,uint64_t);
+// ---- TrollStore 兼容: 虚拟 HID 触摸设备 ----
+// 非越狱(巨魔)环境下, 进程无 SpringBoard 特权, 直接派发触摸会被系统静默丢弃。
+// 需先创建 IOHIDUserDevice 虚拟设备(宿主 App 必须带 com.apple.private.iokit.get-properties 授权)。
+typedef struct __IOHIDUserDevice *IOHIDUserDeviceRef;
+static IOHIDUserDeviceRef (*$IOHIDUserDeviceCreate)(CFAllocatorRef, CFDictionaryRef);
+static void (*$IOHIDUserDeviceScheduleWithRunLoop)(IOHIDUserDeviceRef, CFRunLoopRef, CFStringRef);
+
 #define kIOHIDDigitizerEventRange 0x00000001
 #define kIOHIDDigitizerEventTouch 0x00000002
 #define kIOHIDDigitizerEventPosition 0x00000004
+#define kIOHIDDigitizerEventStop 0x00000008
 #define kIOHIDDigitizerEventIdentity 0x00000010
+#define kIOHIDDigitizerEventStart 0x00000100
 #define kIOHIDDigitizerTransducerTypeHand 3
-#define kIOHIDEventFieldDigitizerMajorRadius 0x00400003
-#define kIOHIDEventFieldIsBuiltIn 0x00060006
-#define kIOHIDEventFieldDigitizerIsDisplayIntegrated 0x00C00001
+#define kIOHIDEventFieldIsBuiltIn 4
+#define kIOHIDEventFieldDigitizerMajorRadius 0x0B0014
+#define kIOHIDEventFieldDigitizerMinorRadius 0x0B0015
+#define kIOHIDEventFieldDigitizerEventMask 0x0B0007
+#define kIOHIDEventFieldDigitizerRange 0x0B0008
+#define kIOHIDEventFieldDigitizerTouch 0x0B0009
+#define kIOHIDEventFieldDigitizerIsDisplayIntegrated 0x0B0019
+#define kIOHIDEventFieldDigitizerContextID 0x0B0006
+#define kIOHIDEventDigitizerSenderID 0x000000010000027F
+
+// 标准触摸屏 HID 报告描述符 (Digitizer / Touch Screen)
+static const uint8_t kTouchscreenDescriptor[] = {
+    0x05, 0x0D, 0x09, 0x04, 0xA1, 0x01, 0x09, 0x55, 0x25, 0x0A, 0x75, 0x08, 0x95, 0x01, 0xB1, 0x02,
+    0x09, 0x54, 0x25, 0x0A, 0x75, 0x08, 0x95, 0x01, 0x81, 0x02, 0x09, 0x22, 0xA1, 0x02, 0x09, 0x42,
+    0x09, 0x32, 0x25, 0x01, 0x75, 0x01, 0x95, 0x02, 0x81, 0x02, 0x95, 0x06, 0x81, 0x03, 0x09, 0x51,
+    0x25, 0x0A, 0x75, 0x08, 0x95, 0x01, 0x81, 0x02, 0x05, 0x01, 0x09, 0x30, 0x09, 0x31, 0x16, 0x00,
+    0x00, 0x26, 0xFF, 0x0F, 0x36, 0x00, 0x00, 0x46, 0xFF, 0x0F, 0x66, 0x00, 0x00, 0x75, 0x10, 0x95,
+    0x02, 0x81, 0x02, 0xC0, 0xC0
+};
+
+static IOHIDUserDeviceRef g_virtualTouchDevice = NULL;
+static IOHIDEventSystemClientRef g_iohidClient = NULL;
+static uint64_t g_touchSenderID = kIOHIDEventDigitizerSenderID;
+
+// 创建虚拟触摸设备
+static void setupVirtualTouchDevice(void) {
+    if (g_virtualTouchDevice) return;
+    if (!$IOHIDUserDeviceCreate) resolveIOHID();
+    if (!$IOHIDUserDeviceCreate) { NSLog(@"[AC] IOHIDUserDeviceCreate 不可用"); return; }
+    CFDataRef desc = CFDataCreate(kCFAllocatorDefault, kTouchscreenDescriptor, sizeof(kTouchscreenDescriptor));
+    int up = 0x0D, u = 0x04, vid = 0x1234, pid = 0x5678, ver = 1;
+    CFNumberRef usagePage = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &up);
+    CFNumberRef usage = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &u);
+    CFNumberRef vendor = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &vid);
+    CFNumberRef product = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pid);
+    CFNumberRef version = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &ver);
+    CFMutableDictionaryRef props = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    CFDictionarySetValue(props, CFSTR("PrimaryUsagePage"), usagePage);
+    CFDictionarySetValue(props, CFSTR("PrimaryUsage"), usage);
+    CFDictionarySetValue(props, CFSTR("VendorID"), vendor);
+    CFDictionarySetValue(props, CFSTR("ProductID"), product);
+    CFDictionarySetValue(props, CFSTR("VersionNumber"), version);
+    CFDictionarySetValue(props, CFSTR("Transport"), CFSTR("Virtual"));
+    CFDictionarySetValue(props, CFSTR("Manufacturer"), CFSTR("AutoClicker"));
+    CFDictionarySetValue(props, CFSTR("Product"), CFSTR("VTouch"));
+    CFDictionarySetValue(props, CFSTR("ReportDescriptor"), desc);
+    g_virtualTouchDevice = $IOHIDUserDeviceCreate(kCFAllocatorDefault, props);
+    if (g_virtualTouchDevice) {
+        $IOHIDUserDeviceScheduleWithRunLoop(g_virtualTouchDevice, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
+        NSLog(@"[AC] 虚拟触摸设备创建成功 (get-properties OK)");
+    } else {
+        NSLog(@"[AC] 虚拟触摸设备创建失败！确认宿主 App 已带 com.apple.private.iokit.get-properties 授权");
+    }
+    CFRelease(desc); CFRelease(usagePage); CFRelease(usage); CFRelease(vendor); CFRelease(product); CFRelease(version);
+    CFRelease(props);
+}
 
 static void resolveIOHID(void) {
     static dispatch_once_t once;
@@ -41,29 +103,61 @@ static void resolveIOHID(void) {
         $IOHIDEventSetFloatValue = dlsym(RTLD_DEFAULT, "IOHIDEventSetFloatValue");
         $IOHIDEventAppendEvent = dlsym(RTLD_DEFAULT, "IOHIDEventAppendEvent");
         $IOHIDEventSetSenderID = dlsym(RTLD_DEFAULT, "IOHIDEventSetSenderID");
-        NSLog(@"[AC] IOHID: %s", $IOHIDEventCreateDigitizerEvent ? "OK" : "FAIL");
+        // 虚拟设备 API (TrollStore 触摸注入需要)
+        $IOHIDUserDeviceCreate = dlsym(RTLD_DEFAULT, "IOHIDUserDeviceCreate");
+        $IOHIDUserDeviceScheduleWithRunLoop = dlsym(RTLD_DEFAULT, "IOHIDUserDeviceScheduleWithRunLoop");
+        NSLog(@"[AC] IOHID: digitizer=%s userdev=%s client=%s dispatch=%s",
+            $IOHIDEventCreateDigitizerEvent ? "Y" : "N",
+            $IOHIDUserDeviceCreate ? "Y" : "N",
+            $IOHIDEventSystemClientCreate ? "Y" : "N",
+            $IOHIDEventSystemClientDispatchEvent ? "Y" : "N");
     });
 }
 
 static void postTouch(CGFloat x, CGFloat y, BOOL touchDown) {
+    // 必须在主线程调用
+    if (![NSThread isMainThread]) { dispatch_sync(dispatch_get_main_queue(), ^{ postTouch(x, y, touchDown); }); return; }
     if (!$IOHIDEventCreateDigitizerEvent) { resolveIOHID(); if (!$IOHIDEventCreateDigitizerEvent) return; }
+    // 巨魔关键: 必须先有虚拟触摸设备, 否则派发会被系统静默丢弃
+    if (!g_virtualTouchDevice) setupVirtualTouchDevice();
+    if (!g_iohidClient && $IOHIDEventSystemClientCreate) g_iohidClient = $IOHIDEventSystemClientCreate(kCFAllocatorDefault);
+    if (!g_virtualTouchDevice || !g_iohidClient) {
+        NSLog(@"[AC] 触摸派发失败: 虚拟设备=%s 客户端=%s", g_virtualTouchDevice ? "Y" : "N", g_iohidClient ? "Y" : "N");
+        return;
+    }
     CGRect sb = UIScreen.mainScreen.bounds;
     IOHIDFloat xf = x/sb.size.width, yf = y/sb.size.height;
+    // 父事件坐标必须为 0，归一化坐标只在子事件中使用
     IOHIDEventRef parent = $IOHIDEventCreateDigitizerEvent(kCFAllocatorDefault, mach_absolute_time(),
-        kIOHIDDigitizerTransducerTypeHand, 1<<22, 1,
-        kIOHIDDigitizerEventRange|kIOHIDDigitizerEventTouch|kIOHIDDigitizerEventIdentity,
-        0, xf, yf, 0,0,0,0,0,0,0);
+        kIOHIDDigitizerTransducerTypeHand, 99, 1, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0);
     if (!parent) return;
-    if ($IOHIDEventSetSenderID) $IOHIDEventSetSenderID(parent, 0x8000000817319375);
-    if ($IOHIDEventSetIntegerValue) $IOHIDEventSetIntegerValue(parent, kIOHIDEventFieldIsBuiltIn, 1);
-    IOHIDEventRef child = $IOHIDEventCreateDigitizerFingerEvent(kCFAllocatorDefault, mach_absolute_time(),
-        3, 2, kIOHIDDigitizerEventRange|kIOHIDDigitizerEventTouch, xf, yf, 0,0,0, touchDown, touchDown, 0);
-    if (child) {
-        if ($IOHIDEventSetFloatValue) $IOHIDEventSetFloatValue(child, kIOHIDEventFieldDigitizerMajorRadius, 0.04);
-        $IOHIDEventAppendEvent(parent, child); CFRelease(child);
+    // 以虚拟设备身份派发
+    if ($IOHIDEventSetSenderID) $IOHIDEventSetSenderID(parent, g_touchSenderID);
+    if ($IOHIDEventSetIntegerValue) {
+        $IOHIDEventSetIntegerValue(parent, kIOHIDEventFieldDigitizerContextID, (int64_t)getpid());
+        $IOHIDEventSetIntegerValue(parent, kIOHIDEventFieldIsBuiltIn, 1);
+        $IOHIDEventSetIntegerValue(parent, kIOHIDEventFieldDigitizerIsDisplayIntegrated, 1);
     }
-    IOHIDEventSystemClientRef client = $IOHIDEventSystemClientCreate(kCFAllocatorDefault);
-    if (client) { $IOHIDEventSystemClientDispatchEvent(parent, client); CFRelease(client); }
+    // 子事件：down 用 start，up 用 stop
+    uint32_t childEvMask = kIOHIDDigitizerEventTouch | (touchDown ? kIOHIDDigitizerEventStart : kIOHIDDigitizerEventStop);
+    IOHIDEventRef child = $IOHIDEventCreateDigitizerFingerEvent(kCFAllocatorDefault, mach_absolute_time(),
+        3, 2, childEvMask, xf, yf, 0.0, 0.0, 0.0, touchDown ? 1 : 0, touchDown ? 1 : 0, 0);
+    if (child) {
+        if ($IOHIDEventSetFloatValue) {
+            $IOHIDEventSetFloatValue(child, kIOHIDEventFieldDigitizerMajorRadius, 0.04);
+            $IOHIDEventSetFloatValue(child, kIOHIDEventFieldDigitizerMinorRadius, 0.04);
+        }
+        $IOHIDEventAppendEvent(parent, child);
+        CFRelease(child);
+    }
+    // 设置父事件最终字段
+    if ($IOHIDEventSetIntegerValue) {
+        $IOHIDEventSetIntegerValue(parent, kIOHIDEventFieldDigitizerEventMask, 0x23);
+        $IOHIDEventSetIntegerValue(parent, kIOHIDEventFieldDigitizerRange, 0x1);
+        $IOHIDEventSetIntegerValue(parent, kIOHIDEventFieldDigitizerTouch, 0x1);
+    }
+    // 通过 IOHIDEventSystemClientDispatchEvent 派发 (已挂虚拟设备身份)
+    if ($IOHIDEventSystemClientDispatchEvent) $IOHIDEventSystemClientDispatchEvent(g_iohidClient, parent);
     CFRelease(parent);
 }
 
@@ -988,7 +1082,7 @@ static void init() {
                 id del = [UIApplication sharedApplication].delegate;
                 if ([del respondsToSelector:@selector(window)]) kw = [del window];
             }
-            if (kw) { resolveIOHID(); [[ACController shared] setupFloatUI]; }
+            if (kw) { setupVirtualTouchDevice(); [[ACController shared] setupFloatUI]; }
             else { dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5*NSEC_PER_SEC)),
                 dispatch_get_main_queue(), trySetup); }
         };

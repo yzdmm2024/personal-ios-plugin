@@ -1,0 +1,49 @@
+name: Build AutoClicker dylib (TrollStore)
+
+on:
+  push:
+    branches: [main, ci/build]
+  workflow_dispatch:
+
+jobs:
+  build-dylib:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcrun clang --version
+          xcrun --sdk iphoneos --show-sdk-path
+
+      - name: Compile AutoClicker.dylib (arm64, 无 CydiaSubstrate 依赖)
+        run: |
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          xcrun clang -arch arm64 \
+            -x objective-c \
+            -isysroot "$SDK" \
+            -miphoneos-version-min=12.0 \
+            -fobjc-arc -fmodules \
+            -framework Foundation -framework UIKit -framework Vision -framework CoreImage -framework AVFoundation \
+            -I src \
+            -dynamiclib \
+            -install_name @executable_path/AutoClicker.dylib \
+            src/Tweak.xm -o AutoClicker.dylib
+
+      - name: Ad-hoc 签名
+        run: codesign -s - --force AutoClicker.dylib || true
+
+      - name: 检查依赖 (应无 CydiaSubstrate)
+        run: |
+          file AutoClicker.dylib
+          echo "--- 未定义符号中是否含 substrate ---"
+          nm -u AutoClicker.dylib 2>/dev/null | grep -i substrate || echo "OK: 无 CydiaSubstrate 依赖"
+          echo "--- 链接的框架 ---"
+          otool -L AutoClicker.dylib
+
+      - name: 上传 dylib 构件
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoClicker-dylib
+          path: AutoClicker.dylib
