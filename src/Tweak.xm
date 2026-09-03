@@ -1,5 +1,6 @@
 // 注: 本 dylib 为巨魔(TrollStore)专用, 不依赖 CydiaSubstrate, 故移除 #include <substrate.h>
 #import <UIKit/UIKit.h>
+#import <objc/runtime.h>
 #import <dlfcn.h>
 #import <mach/mach_time.h>
 #import <AVFoundation/AVFoundation.h>
@@ -21,6 +22,7 @@ static void (*$IOHIDEventSetIntegerValue)(IOHIDEventRef,uint32_t,int64_t);
 static void (*$IOHIDEventSetFloatValue)(IOHIDEventRef,uint32_t,IOHIDFloat);
 static void (*$IOHIDEventAppendEvent)(IOHIDEventRef,IOHIDEventRef);
 static void (*$IOHIDEventSetSenderID)(IOHIDEventRef,uint64_t);
+static void resolveIOHID(void); // 前向声明
 // ---- TrollStore 兼容: 虚拟 HID 触摸设备 ----
 // 非越狱(巨魔)环境下, 进程无 SpringBoard 特权, 直接派发触摸会被系统静默丢弃。
 // 需先创建 IOHIDUserDevice 虚拟设备(宿主 App 必须带 com.apple.private.iokit.get-properties 授权)。
@@ -129,7 +131,7 @@ static void postTouch(CGFloat x, CGFloat y, BOOL touchDown) {
     IOHIDFloat xf = x/sb.size.width, yf = y/sb.size.height;
     // 父事件坐标必须为 0，归一化坐标只在子事件中使用
     IOHIDEventRef parent = $IOHIDEventCreateDigitizerEvent(kCFAllocatorDefault, mach_absolute_time(),
-        kIOHIDDigitizerTransducerTypeHand, 99, 1, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0, 0, 0);
+        kIOHIDDigitizerTransducerTypeHand, 99, 1, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     if (!parent) return;
     // 以虚拟设备身份派发
     if ($IOHIDEventSetSenderID) $IOHIDEventSetSenderID(parent, g_touchSenderID);
@@ -1042,7 +1044,7 @@ static NSString *tasksArchivePath(void) {
     @synchronized(g_taskList) {
         if (g_taskList.count == 0) return;
         NSError *err = nil;
-        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:g_taskList requiringYESecureCoding:NO error:&err];
+        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:g_taskList requiringSecureCoding:NO error:&err];
         if (data) {
             [data writeToFile:tasksArchivePath() atomically:YES];
         }
