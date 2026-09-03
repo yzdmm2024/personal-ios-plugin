@@ -17,6 +17,7 @@ static void swizzleSendEvent(BOOL hook);
 // ==================== IOHIDEvent ====================
 typedef struct __IOHIDEvent *IOHIDEventRef;
 typedef struct __IOHIDEventSystemClient *IOHIDEventSystemClientRef;
+typedef struct __IOHIDUserDevice *IOHIDUserDeviceRef;
 typedef double IOHIDFloat;
 static IOHIDEventRef (*$IOHIDEventCreateDigitizerEvent)(CFAllocatorRef,uint64_t,uint32_t,uint32_t,uint32_t,uint32_t,uint32_t,IOHIDFloat,IOHIDFloat,IOHIDFloat,IOHIDFloat,IOHIDFloat,unsigned char,unsigned char,unsigned int);
 static void (*$clientDispatch)(IOHIDEventSystemClientRef, IOHIDEventRef);
