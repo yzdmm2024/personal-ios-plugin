@@ -1,4 +1,4 @@
-name: Build AutoClicker dylib (TrollStore, 胖虎完整版)
+name: Build AutoClicker (TrollStore 自包含 IPA)
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-dylib:
+  build:
     runs-on: macos-latest
     steps:
       - name: Checkout
@@ -31,19 +31,75 @@ jobs:
             -install_name @executable_path/AutoClicker.dylib \
             src/Tweak.xm -o AutoClicker.dylib
 
-      - name: Ad-hoc 签名
-        run: codesign -s - --force AutoClicker.dylib || true
-
-      - name: 检查依赖 (应无 CydiaSubstrate)
+      - name: 检查 dylib 依赖 (应无 CydiaSubstrate)
         run: |
           file AutoClicker.dylib
-          echo "--- 未定义符号中是否含 substrate ---"
           nm -u AutoClicker.dylib 2>/dev/null | grep -i substrate || echo "OK: 无 CydiaSubstrate 依赖"
-          echo "--- 链接的框架 ---"
           otool -L AutoClicker.dylib
 
-      - name: 上传 dylib 构件
+      - name: Compile 宿主 App (ACHost)
+        run: |
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          xcrun clang -arch arm64 \
+            -x objective-c \
+            -isysroot "$SDK" \
+            -miphoneos-version-min=15.0 \
+            -fobjc-arc -fmodules \
+            -framework Foundation -framework UIKit \
+            host/main.m -o ACHost
+
+      - name: 组装 .app 并嵌入 dylib + 签名 (entitlements)
+        run: |
+          set -e
+          rm -rf Payload ACHost.app
+          mkdir -p ACHost.app
+          cp ACHost ACHost.app/ACHost
+          cp host/Info.plist ACHost.app/Info.plist
+          cp AutoClicker.dylib ACHost.app/AutoClicker.dylib
+          # 干净版 entitlements (无注释) 供 codesign 使用
+          cat > Entitlements.plist <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>com.apple.private.iokit.get-properties</key>
+    <true/>
+    <key>com.apple.private.iokit.set-properties</key>
+    <true/>
+    <key>com.apple.private.security.no-sandbox</key>
+    <true/>
+    <key>com.apple.private.security.container-required</key>
+    <false/>
+    <key>get-task-allow</key>
+    <true/>
+    <key>com.apple.backgroundtask</key>
+    <true/>
+</dict>
+</plist>
+PLIST
+          # 用 entitlements 签名整个 app (含内嵌 dylib)
+          codesign --force --sign - --entitlements Entitlements.plist ACHost.app
+          echo "--- 签名后的 entitlements ---"
+          codesign -d --entitlements :- ACHost.app
+
+      - name: 打包为 .ipa
+        run: |
+          mkdir -p Payload
+          mv ACHost.app Payload/
+          zip -r AutoClicker.ipa Payload
+          rm -rf Payload
+          ls -la AutoClicker.ipa
+
+      - name: 上传 dylib 构件 (供手动注入)
         uses: actions/upload-artifact@v4
         with:
           name: AutoClicker-dylib
           path: AutoClicker.dylib
+
+      - name: 上传 IPA 构件 (自包含, 直接 TrollStore 安装)
+        uses: actions/upload-artifact@v4
+        with:
+          name: AutoClicker-ipa
+          path: |
+            AutoClicker.ipa
+            Entitlements.plist
