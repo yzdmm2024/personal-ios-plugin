@@ -56,8 +56,8 @@ jobs:
           cp ACHost ACHost.app/ACHost
           cp host/Info.plist ACHost.app/Info.plist
           cp AutoClicker.dylib ACHost.app/AutoClicker.dylib
-          # 用仓库内的 Entitlements.plist 签名整个 app (含内嵌 dylib)
-          codesign --force --sign - --entitlements Entitlements.plist ACHost.app
+          # 用仓库内的 Entitlements.plist 签名整个 app (含内嵌 dylib, --deep 保证嵌套 dylib 签名一致)
+          codesign --force --deep --sign - --entitlements Entitlements.plist ACHost.app
           echo "--- 签名后的 entitlements ---"
           codesign -d --entitlements :- ACHost.app
 
